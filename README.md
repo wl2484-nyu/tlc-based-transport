@@ -212,6 +212,39 @@ Input: RDD[([1,2,3,4], 2), ([3,4,5], 1)]
 Output: RDD[("1,2", 2), ("2,3", 2), ("3,4", 2), ("1,2,3", 2), ("2,3,4", 2), ("1,2,3,4", 2), ("3,4", 1), ("4,5", 1), ("3,4,5", 1)]
 ```
 
+### Step-5: Transform frequency RDD of the shortest path all-pairs substring into a frequency Map of substring path
+> Owner: TBA
+
+#### Expected Output 1: Spark scripts to transform frequency RDD of the shortest path all-pairs substring into a frequency Map
+Treat the 1st element, i.e. the shortest path all-pairs substring, in the frequency RDD as key, and then reduceByKey to 
+compute the frequency of each substring path, i.e. transform `RDD[(String, Int)]` into `Map[String, Int]`.
+
+**Example**
+
+```scala
+Input: RDD[("1,2", 2), ("2,3", 2), ("3,4", 2), ("1,2,3", 2), ("2,3,4", 2), ("1,2,3,4", 2), ("3,4", 1), ("4,5", 1), ("3,4,5", 1)]
+
+Output: Map["1,2" -> 2, "2,3" -> 2, "3,4" -> 3, "1,2,3" -> 2, "2,3,4" -> 2, "1,2,3,4" -> 2, "4,5" -> 1, "3,4,5" -> 1]
+```
+
+#### Expected Output 2: Spark scripts to export the sorted frequency Map of the shortest path all-pairs substring
+Sort the frequency Map in descending order by the value first, followed by the key length, and then output the key-value
+pairs to a TSV file, where the first column is frequency and the second column is the path.
+
+**Example**
+
+```tsv
+frequency\tpath
+2\t1,2,3,4
+2\t1,2,3
+2\t2,3,4
+2\t1,2
+2\t2,3
+2\t3,4
+1\t3,4,5
+1\t4,5
+```
+
 
 ## References
 1. [Graph algorithms in Scala](https://github.com/Arminea/scala-graphs)
