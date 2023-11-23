@@ -178,6 +178,25 @@ the 1st element as key, and then reduceByKey to compute the frequency of each un
 2. Discard a pair when its pick-up or drop-off location is outside the target borough, e.g. Manhattan.
 3. Discard a pair when its pick-up or drop-off location has no neighbor (i.e. is an isolated location).
 
+### Step-3: Transform each taxi trip in the frequency RDD into corresponding shortest path
+> Owner: TBA
+
+#### Expected Output 1: Spark scripts to transform frequency RDD of taxi trip into frequency RDD of the shortest path
+For each (pick-up, drop-off) pair in the frequency RDD, apply the Dijkstra's Algorithm to transform the pair into 
+corresponding shortest path according to the neighbor zone graph stored in the broadcast variable, i.e. transform 
+`RDD[((Location, Location), Int)]` into `RDD[(List[Location], Int)]`.
+
+**Example**
+> Each node in the graph represents a location by ID, and each edge weight shows the distance between two locations.
+
+<img src="figures/graph.png" width="104" height="153">
+
+```scala
+Input: RDD[((1, 4), 2), ((2, 4), 1), ((1, 2), 1), ((3, 5), 1)]
+
+Output: RDD[([1,2,3,4], 2), ([2,3,4], 1), ([1,2], 1), ([3,4,5], 1)]
+```
+
 
 ## References
 1. [Graph algorithms in Scala](https://github.com/Arminea/scala-graphs)
