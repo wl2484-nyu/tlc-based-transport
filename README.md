@@ -103,6 +103,34 @@ done;
 ```
 
 
+## Methodology
+When there exist frequent taxi trips going from location-X to location-Y, both location-X and location-Y could be 
+considered good candidate starting and ending stops, or 2 intermediate stops, of a public transport route.
+
+With the [TLC Trip Record Data](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page), we can compute the 
+frequency of each taxi trip (pick-up, drop-off) pair, and identify the top K pairs that appear most frequently. 
+
+Then, we need to figure out an applicable route from the pick-up location to the drop-off location for each of the top K 
+pairs. As the explicit travel way of each taxi trip is not given in the dataset, we propose a simple approach to 
+approximate a coarse-grained route using the neighboring relation between taxi zones (i.e. locations).
+
+There exist multiple possible paths going from location-X to location-Y. For each possible path of length N-1, e.g. 
+location-L_{1 -> ... -> i -> ... -> N}, where N >= 2 and 1 <= i <= N, L_1 corresponds to X, L_N corresponds to Y, and 
+for all i each edge connecting L_i and L_(i+1) implies a neighboring relation and its weight represents the distance 
+between L_i and L_(i+1). By adopting this setting, we can then apply the Dijkstra's Algorithm to find the shortest
+(distance) path, i.e. an applicable route, going from location-X to location-Y.
+
+The followings are the assumptions we made:
+1. Every taxi zone is a small enough area where no public transport route recommendation is needed, i.e. taxi trips 
+   where the starting and ending locations are the same are excluded from the datasets.
+2. Every taxi zone has >= 1 neighbor, i.e. isolated locations like islands are excluded from the datasets.
+3. For all locations, there exist at least one viable way going directly from itself to each of its neighbor.
+4. Each taxi trip going from location-X to location-Y took the shortest distance path between the two locations.
+5. Given the latitude and longitude coordinates of the taxi zone boundary provided in dataset-1, the coordinate of each 
+   location is represented by the average of the geological coordinates of its borderline, and the distance between two 
+   locations is the great-circle distance (unit: km) between the two average geological coordinates.
+
+
 ## References
 1. [Graph algorithms in Scala](https://github.com/Arminea/scala-graphs)
 2. [Scala: Calculating the Distance Between Two Locations](https://dzone.com/articles/scala-calculating-distance-between-two-locations)
