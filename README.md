@@ -130,6 +130,42 @@ The followings are the assumptions we made:
    location is represented by the average of the geological coordinates of its borderline, and the distance between two 
    locations is the great-circle distance (unit: km) between the two average geological coordinates.
 
+After that, the implementation could be broken down into the following 7 steps:
+
+### Step-1: Build up the neighbor zone graph
+> Owner: Wan-Yu Lin
+
+Transform **dataset-1** into a neighbor zone graph represented by an adjacency list with distance as weight.
+
+#### Expected Output 1: Spark scripts to convert dataset-1 into graph stored in a broadcast variable
+For each borough in dataset-1, load and transform locations in the borough into a graph, i.e. an adjacency list with 
+distance as weight, using the neighboring relation between locations, and store it as Map in a broadcast variable, e.g. 
+`Broadcast[Map[Location, List[WeightedEdge[Location]]]]`.
+1. When there are >= 2 identical geological coordinates on the borderline between two locations, they are considered 
+neighbors.
+   * **If this assumption is rejected due to the dataset's setting**, e.g. 2 neighbor locations sharing the same 
+     borderline have < 2 common geological coordinate points, **the neighboring relation between locations would be 
+     manually determined** according to the Taxi Zone Map - 
+     {[Bronx](https://www.nyc.gov/assets/tlc/images/content/pages/about/taxi_zone_map_bronx.jpg), 
+     [Brooklyn](https://www.nyc.gov/assets/tlc/images/content/pages/about/taxi_zone_map_brooklyn.jpg),
+     [Manhattan](https://www.nyc.gov/assets/tlc/images/content/pages/about/taxi_zone_map_manhattan.jpg),
+     [Queens](https://www.nyc.gov/assets/tlc/images/content/pages/about/taxi_zone_map_queens.jpg)} 
+     provided in the dataset.
+2. The coordinate of each location is represented by the average of its boundary geological coordinates.
+3. The great-circle distance between two locations is calculated using the haversine formula [2].
+
+#### Expected Output 2: Isolated locations per borough
+Output a TSV file with two columns to `/user/wl2484_nyu_edu/project/data/intermediate/isolated_locations`, where each 
+line in the file provides comma-separated isolated locations within a borough. Below is an example:
+
+```tsv
+Borough\tLocationIDs
+Bronx\t46,199
+Brooklyn\t
+Manhattan\t103,104,105,153,194,202
+Queens\t2,27,30,86,117,201
+```
+
 
 ## References
 1. [Graph algorithms in Scala](https://github.com/Arminea/scala-graphs)
