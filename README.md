@@ -197,6 +197,21 @@ Input: RDD[((1, 4), 2), ((2, 4), 1), ((1, 2), 1), ((3, 5), 1)]
 Output: RDD[([1,2,3,4], 2), ([2,3,4], 1), ([1,2], 1), ([3,4,5], 1)]
 ```
 
+### Step-4: Transform each shortest path in the frequency RDD into all-pairs of the shortest path substring
+> Owner: TBA
+
+#### Expected Output 1: Spark scripts to transform frequency RDD of the shortest path into frequency RDD of the shortest path all-pairs substring
+For each shortest path in the frequency RDD, transform the path into all-pairs of its sub-location-string, i.e. 
+transform `RDD[(List[Location], Int)]` into `RDD[(String, Int)]`.
+
+**Example**
+
+```scala
+Input: RDD[([1,2,3,4], 2), ([3,4,5], 1)]
+
+Output: RDD[("1,2", 2), ("2,3", 2), ("3,4", 2), ("1,2,3", 2), ("2,3,4", 2), ("1,2,3,4", 2), ("3,4", 1), ("4,5", 1), ("3,4,5", 1)]
+```
+
 
 ## References
 1. [Graph algorithms in Scala](https://github.com/Arminea/scala-graphs)
