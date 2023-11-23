@@ -166,6 +166,18 @@ Manhattan\t103,104,105,153,194,202
 Queens\t2,27,30,86,117,201
 ```
 
+### Step-2: Compute taxi trip frequency
+> Owner: TBA
+
+#### Expected Output 1: Spark scripts to convert dataset-2 into a frequency RDD of (pick-up, drop-off) pair
+Transform taxi trips in **dataset-2** into (pick-up, drop-off) pairs, load the isolated_locations and apply the 
+filtering rules (i.e. the 3 rules documented below), map each remaining pair to tuple ((pick-up, drop-off), 1), treat 
+the 1st element as key, and then reduceByKey to compute the frequency of each unique (pick-up, drop-off) pair, e.g. 
+`RDD[((Location, Location), Int)]`.
+1. Discard a pair when its pick-up and drop-off locations are the same.
+2. Discard a pair when its pick-up or drop-off location is outside the target borough, e.g. Manhattan.
+3. Discard a pair when its pick-up or drop-off location has no neighbor (i.e. is an isolated location).
+
 
 ## References
 1. [Graph algorithms in Scala](https://github.com/Arminea/scala-graphs)
