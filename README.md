@@ -130,7 +130,7 @@ The followings are the assumptions we made:
    location is represented by the average of the geological coordinates of its borderline, and the distance between two 
    locations is the great-circle distance (unit: km) between the two average geological coordinates.
 
-After that, the implementation could be broken down into the following 7 steps:
+After that, the implementation could be broken down into the following steps:
 
 ### Step-1: Build up the neighbor zone graph
 > Owner: Wan-Yu Lin
@@ -193,7 +193,6 @@ corresponding shortest path according to the neighbor zone graph stored in the b
 
 ```scala
 Input: RDD[((1, 4), 2), ((2, 4), 1), ((1, 2), 1), ((3, 5), 1)]
-
 Output: RDD[([1,2,3,4], 2), ([2,3,4], 1), ([1,2], 1), ([3,4,5], 1)]
 ```
 
@@ -208,7 +207,6 @@ transform `RDD[(List[Location], Int)]` into `RDD[(String, Int)]`.
 
 ```scala
 Input: RDD[([1,2,3,4], 2), ([3,4,5], 1)]
-
 Output: RDD[("1,2", 2), ("2,3", 2), ("3,4", 2), ("1,2,3", 2), ("2,3,4", 2), ("1,2,3,4", 2), ("3,4", 1), ("4,5", 1), ("3,4,5", 1)]
 ```
 
@@ -223,7 +221,6 @@ compute the frequency of each substring path, i.e. transform `RDD[(String, Int)]
 
 ```scala
 Input: RDD[("1,2", 2), ("2,3", 2), ("3,4", 2), ("1,2,3", 2), ("2,3,4", 2), ("1,2,3,4", 2), ("3,4", 1), ("4,5", 1), ("3,4,5", 1)]
-
 Output: Map["1,2" -> 2, "2,3" -> 2, "3,4" -> 3, "1,2,3" -> 2, "2,3,4" -> 2, "1,2,3,4" -> 2, "4,5" -> 1, "3,4,5" -> 1]
 ```
 
@@ -243,6 +240,33 @@ frequency\tpath
 2\t3,4
 1\t3,4,5
 1\t4,5
+```
+
+### Step-6: Recommend the top k most frequent paths of at least length m in a human-readable manner
+> Owner: Wan-Yu Lin
+
+Select the top k' most frequent paths of at least length m from the frequency Map, and exclude the substring paths from 
+the k' paths. After that, there are k'' paths left, then select the top k (where k <= k'') paths according to frequency, 
+and finally join dataset-3 to provide k human-readable routes for public transport.
+
+**Example**
+
+```scala
+# select the top k' most frequent paths of at least length m
+Input: k' = 10, m = 3, Map["3,4" -> 6, "1,2,3,4" -> 5, "1,2,3" -> 5, "2,3,4" -> 5, "1,2" -> 5, "2,3" -> 5, "3,4,5" -> 4, "4,5" -> 4, "1,2,3,4,5" -> 3, "2,3,4,5" -> 3]
+Output: ["1,2,3,4" -> 5, "1,2,3" -> 5, "2,3,4" -> 5, "3,4,5" -> 4, "1,2,3,4,5" -> 3, "2,3,4,5" -> 3]
+
+# exclude the substring paths from the k' paths
+Input: ["1,2,3,4" -> 5, "1,2,3" -> 5, "2,3,4" -> 5, "3,4,5" -> 4, "1,2,3,4,5" -> 3, "2,3,4,5" -> 3]
+Output: ["1,2,3,4,5" -> 3]
+
+# select the top k (where k <= k'') paths according to frequency
+Input: k = 3, ["1,2,3,4,5" -> 3]
+Output: ["1,2,3,4,5"]
+
+# join dataset-3 to provide k human-readable routes
+Input: k = 3, ["1,2,3,4,5"]
+Output: ["Penn Station/Madison Sq West,Flatiron,West Village,Hudson Sq,SoHo"]
 ```
 
 
