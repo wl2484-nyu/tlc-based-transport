@@ -8,6 +8,11 @@ Recommend public transport route(s) based on [TLC Trip Record Data](https://www.
 2. Priyanka Narain (pn2182)
 3. Charvi Gupta (cg4177)
 
+## Expected Outputs
+1. [12/01] Spark code (and results?) for data profiling
+2. [12/11] Presentation in class
+3. [12/15] Spark code and corresponding scripts for methodology implementation + a paper-ish report
+
 ## Data Sources
 |     | Main Dataset                                                                                                                                          | Subordinate Dataset                                                                                                              | Owner           | Format    | Size         | Time Span         | HDFS Location                                               | Notes                                                                                                    |
 |-----|:------------------------------------------------------------------------------------------------------------------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------|:----------------|:----------|:-------------|:------------------|:------------------------------------------------------------|:---------------------------------------------------------------------------------------------------------|
