@@ -113,6 +113,42 @@ done;
 |                    | stop_times.txt       | trip_id, stop_id, stop_sequence | trip_id, stop_id, stop_sequence        | Wan-Yu Lin      |
 |                    | stops.txt            | stop_id, stop_lat, stop_lon     | stop_id, stop_lat, stop_lon            | Wan-Yu Lin      |
 
+## Data Profiling
+
+### dataset-1
+> Owner: Wan-Yu Lin
+
+1. average number of boundary coordinates per location
+2. average latitude
+3. average longitude
+
+### dataset-2
+
+#### dataset-2.1
+> Owner: Charvi Gupta
+
+TBA
+
+#### dataset-2.2
+> Owner: Charvi Gupta
+
+TBA
+
+#### dataset-2.3
+> Owner: Priyanka Narain
+
+TBA
+
+#### dataset-2.4
+> Owner: Priyanka Narain
+
+TBA
+
+### dataset-3
+> Owner: Wan-Yu Lin
+
+1. number of locations per borough
+
 ## Methodology
 When there exist frequent taxi trips going from location-X to location-Y, both location-X and location-Y could be 
 considered good candidate starting and ending stops, or 2 intermediate stops, of a public transport route.
