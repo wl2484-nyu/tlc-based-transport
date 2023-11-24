@@ -1,4 +1,4 @@
-# Taxi Trip Based Transport Recommendation
+# Public Transport Route Recommendation with Manhattan's Taxi Trip Data
 > Optional items are marked with *
 
 Recommend public transport route(s) based on [TLC Trip Record Data](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page).
@@ -130,7 +130,8 @@ The followings are the assumptions we made:
    location is represented by the average of the geological coordinates of its borderline, and the distance between two 
    locations is the great-circle distance (unit: km) between the two average geological coordinates.
 
-After that, the implementation could be broken down into the following steps:
+After that, the implementation for public transport route recommendation with taxi trip data could be broken down into 
+the following steps:
 
 ### Step-1: Build up the neighbor zone graph
 > Owner: Wan-Yu Lin
@@ -184,54 +185,27 @@ the 1st element as key, and then reduceByKey to compute the frequency of each un
 #### Expected Output 1: Spark scripts to transform frequency RDD of taxi trip into frequency RDD of the shortest path
 For each (pick-up, drop-off) pair in the frequency RDD, apply the Dijkstra's Algorithm to transform the pair into 
 corresponding shortest path according to the neighbor zone graph stored in the broadcast variable, i.e. transform 
-`RDD[((Location, Location), Int)]` into `RDD[(List[Location], Int)]`.
+`RDD[((Location, Location), Int)]` into `RDD[(String, Int)]`.
 
 **Example**
 > Each node in the graph represents a location by ID, and each edge weight shows the distance between two locations.
 
 <img src="figures/graph.png" width="104" height="153">
 
-```scala
+```
 Input: RDD[((1, 4), 2), ((2, 4), 1), ((1, 2), 1), ((3, 5), 1)]
-Output: RDD[([1,2,3,4], 2), ([2,3,4], 1), ([1,2], 1), ([3,4,5], 1)]
+Output: RDD[("1,2,3,4", 2), ("2,3,4", 1), ("1,2", 1), ("3,4,5", 1)]
 ```
 
-### Step-4: Transform each shortest path in the frequency RDD into all-pairs of the shortest path substring
-> Owner: TBA
-
-#### Expected Output 1: Spark scripts to transform frequency RDD of the shortest path into frequency RDD of the shortest path all-pairs substring
-For each shortest path in the frequency RDD, transform the path into all-pairs of its sub-location-string, i.e. 
-transform `RDD[(List[Location], Int)]` into `RDD[(String, Int)]`.
-
-**Example**
-
-```scala
-Input: RDD[([1,2,3,4], 2), ([3,4,5], 1)]
-Output: RDD[("1,2", 2), ("2,3", 2), ("3,4", 2), ("1,2,3", 2), ("2,3,4", 2), ("1,2,3,4", 2), ("3,4", 1), ("4,5", 1), ("3,4,5", 1)]
-```
-
-### Step-5: Transform frequency RDD of the shortest path all-pairs substring into a frequency Map of substring path
-> Owner: TBA
-
-#### Expected Output 1: Spark scripts to transform frequency RDD of the shortest path all-pairs substring into a frequency Map
-Treat the 1st element, i.e. the shortest path all-pairs substring, in the frequency RDD as key, and then reduceByKey to 
-compute the frequency of each substring path, i.e. transform `RDD[(String, Int)]` into `Map[String, Int]`.
-
-**Example**
-
-```scala
-Input: RDD[("1,2", 2), ("2,3", 2), ("3,4", 2), ("1,2,3", 2), ("2,3,4", 2), ("1,2,3,4", 2), ("3,4", 1), ("4,5", 1), ("3,4,5", 1)]
-Output: Map["1,2" -> 2, "2,3" -> 2, "3,4" -> 3, "1,2,3" -> 2, "2,3,4" -> 2, "1,2,3,4" -> 2, "4,5" -> 1, "3,4,5" -> 1]
-```
-
-#### Expected Output 2: Spark scripts to export the sorted frequency Map of the shortest path all-pairs substring
-Sort the frequency Map in descending order by the value first, followed by the key length, and then output the key-value
-pairs to a TSV file, where the first column is frequency and the second column is the path.
+#### Expected Output 2: Export the frequency RDD of the shortest path as a TSV file
+Sort the frequency RDD in descending order by the frequency first, followed by the trip_path length, and then output to 
+`/user/wl2484_nyu_edu/project/data/intermediate/trip_paths_frequency` as a 2-column TSV file, where the first column is 
+the frequency and the second column is the trip_path.
 
 **Example**
 
 ```tsv
-frequency\tpath
+frequency\ttrip_path
 2\t1,2,3,4
 2\t1,2,3
 2\t2,3,4
@@ -242,31 +216,91 @@ frequency\tpath
 1\t4,5
 ```
 
-### Step-6: Recommend the top k most frequent paths of at least length m in a human-readable manner
-> Owner: Wan-Yu Lin
+### Step-4: Compute coverage count for each trip path
+> Owner: TBA
 
-Select the top k' most frequent paths of at least length m from the frequency Map, and exclude the substring paths from 
-the k' paths. After that, there are k'' paths left, then select the top k (where k <= k'') paths according to frequency, 
-and finally join dataset-3 to provide k human-readable routes for public transport.
+**Trip path coverage count** represents the # of trips covered by such path, i.e. how many taxi trips can be covered if 
+there's such path served as a public transport route.
+
+#### Expected Output 1: Spark scripts to combine the frequencies of a trip path and all its substring paths
+
+**Example**
+
+```
+Input: RDD[("1,2", 2), ("2,3", 2), ("3,4", 2), ("1,2,3", 2), ("2,3,4", 2), ("1,2,3,4", 2), ("3,4", 1), ("4,5", 1), ("3,4,5", 1)]
+Output: RDD[("1,2,3,4", 12), ("1,2,3", 6), ("2,3,4", 6), ("3,4,5", 4), ("1,2", 2), ("2,3", 2), ("3,4", 2), ("4,5", 1)]
+```
+
+#### Expected Output 2: Export the trip path coverage count RDD as a TSV file
+Sort the trip path coverage count RDD in descending order by the coverage count first, followed by the trip_path length, 
+and then output to `/user/wl2484_nyu_edu/project/data/intermediate/trip_paths_coverage_count` as a 2-column TSV file, 
+where the first column is the coverage_count and the second column is the trip_path.
+
+**Example**
+
+```
+Input: RDD[("1,2,3,4", 12), ("1,2,3", 6), ("2,3,4", 6), ("3,4,5", 4), ("1,2", 2), ("2,3", 2), ("3,4", 2), ("4,5", 1)]
+
+Output:
+coverage_count\ttrip_path
+12\t1,2,3,4
+6\t1,2,3
+6\t2,3,4
+4\t3,4,5
+2\t1,2
+2\t2,3
+2\t3,4
+1\t4,5
+```
+
+### Step-5: Recommend the top k trip paths of at least length m of the highest coverage count as human-readable routes
+> Owner: TBA
+
+Select the top k trip paths according to coverage count, and join them with dataset-3 to provide human-readable routes 
+for public transport.
+
+#### Expected Output 1: Spark scripts to transform top k paths with the most coverage count into human-readable routes
 
 **Example**
 
 ```scala
-# select the top k' most frequent paths of at least length m
-Input: k' = 10, m = 3, Map["3,4" -> 6, "1,2,3,4" -> 5, "1,2,3" -> 5, "2,3,4" -> 5, "1,2" -> 5, "2,3" -> 5, "3,4,5" -> 4, "4,5" -> 4, "1,2,3,4,5" -> 3, "2,3,4,5" -> 3]
-Output: ["1,2,3,4" -> 5, "1,2,3" -> 5, "2,3,4" -> 5, "3,4,5" -> 4, "1,2,3,4,5" -> 3, "2,3,4,5" -> 3]
+# select the top k paths of at least length m according to coverage count
+Input: k = 5, m = 3, RDD[("1,2,3,4", 12), ("1,2,3", 6), ("2,3,4", 6), ("3,4,5", 4), ("1,2", 2), ("2,3", 2), ("3,4", 2), ("4,5", 1)]
+Output: [("1,2,3,4", 12), ("1,2,3", 6), ("2,3,4", 6)]
 
-# exclude the substring paths from the k' paths
-Input: ["1,2,3,4" -> 5, "1,2,3" -> 5, "2,3,4" -> 5, "3,4,5" -> 4, "1,2,3,4,5" -> 3, "2,3,4,5" -> 3]
-Output: ["1,2,3,4,5" -> 3]
+# join candidate paths with dataset-3 to provide human-readable routes
+Input: [("1,2,3,4", 12), ("1,2,3", 6), ("2,3,4", 6)]
+Output: 
+RDD[
+    ("Penn Station/Madison Sq West,Flatiron,West Village,Hudson Sq", 12), 
+    ("Penn Station/Madison Sq West,Flatiron,West Village", 6), 
+    ("Flatiron,West Village,Hudson Sq", 6),
+    ("West Village,Hudson Sq,SoHo", 4)
+]
+```
 
-# select the top k (where k <= k'') paths according to frequency
-Input: k = 3, ["1,2,3,4,5" -> 3]
-Output: ["1,2,3,4,5"]
+#### Expected Output 2: Export top k human-readable routes as a TSV file sorted in descending order by coverage count
+Sort the coverage count RDD of human-readable route in descending order by the coverage count first, followed by the 
+route length, and then output to `/user/wl2484_nyu_edu/project/data/result/rec_routes_coverage_count` as a 2-column TSV 
+file, where the first column is the coverage_count and the second column is the human-readable route.
 
-# join dataset-3 to provide k human-readable routes
-Input: k = 3, ["1,2,3,4,5"]
-Output: ["Penn Station/Madison Sq West,Flatiron,West Village,Hudson Sq,SoHo"]
+**Example**
+
+```
+Input: 
+RDD[
+    ("Penn Station/Madison Sq West,Flatiron,West Village,Hudson Sq", 12), 
+    ("Penn Station/Madison Sq West,Flatiron,West Village", 6), 
+    ("Flatiron,West Village,Hudson Sq", 6),
+    ("West Village,Hudson Sq,SoHo", 4)
+]
+
+Output:
+coverage_count\troute
+12\tPenn Station/Madison Sq West,Flatiron,West Village,Hudson Sq
+6\tPenn Station/Madison Sq West,Flatiron,West Village
+6\tFlatiron,West Village,Hudson Sq
+4\tWest Village,Hudson Sq,SoHo
 ```
 
 
