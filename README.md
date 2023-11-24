@@ -345,6 +345,30 @@ coverage_count\troute
 4\tWest Village,Hudson Sq,SoHo
 ```
 
+### Step-6: Compute the coverage of taxi trips by the top k recommended routes
+> Owner: TBA
+
+Calculate the number of taxi trips that can be covered by the top k recommended routes, i.e. for each path in the trip 
+path frequency TSV file, take its frequency into count if it is a substring of one or more of the top k recommended 
+routes, and finally divide the number of taxi trips covered by the total number of taxi trips.
+
+#### Expected Output 1: Spark scripts to compute and output the coverage of taxi trips by the top k recommended routes
+
+
+### Step-7*: Join dataset-4 with dataset-1 to output the zone path per public transport route
+> Owner: Wan-Yu Lin
+
+TBA
+
+### Step-8*: Compute the coverage of taxi trips by the public transport (e.g. subway and bus)
+> Owner: Wan-Yu Lin
+
+Calculate the number of taxi trips that can be covered by subway and bus routes, i.e. for each path in the trip path 
+frequency TSV file, take its frequency into count if it is a substring of one or more of the subway and bus routes, and 
+finally divide the number of taxi trips covered by the total number of taxi trips.
+
+#### Expected Output 1: Spark scripts to compute and output the coverage of taxi trips by subway and bus routes
+
 
 ## References
 1. [Graph algorithms in Scala](https://github.com/Arminea/scala-graphs)
