@@ -99,6 +99,19 @@ for br in manhattan; do
 done;
 ```
 
+## Data Cleaning
+
+| Dataset            | File                 | Raw Columns to Keep             | Renamed & New Columns                  | Owner           |
+|--------------------|:---------------------|:--------------------------------|:---------------------------------------|:----------------|
+| dataset-1          | taxi_zones.csv       | the_geom, LocationID, borough   | location_id, avg_lat, avg_lon, borough | Wan-Yu Lin      |
+| dataset-2.1        | *.parquet            | PULocationID, DOLocationID      | pu_location_id, do_location_id         | Charvi Gupta    |
+| dataset-2.2        | *.parquet            | PULocationID, DOLocationID      | pu_location_id, do_location_id         | Charvi Gupta    |
+| dataset-2.3        | *.parquet            | PULocationID, DOLocationID      | pu_location_id, do_location_id         | Priyanka Narain |
+| dataset-2.4        | *.parquet            | PULocationID, DOLocationID      | pu_location_id, do_location_id         | Priyanka Narain |
+| dataset-3          | taxi_zone_lookup.csv | LocationID, Borough, Zone       | location_id, zone, borough             | Wan-Yu Lin      |
+| dataset-4.{1,2,3}* | trips.txt            | route_id, trip_id               | route_id, trip_id                      | Wan-Yu Lin      |
+|                    | stop_times.txt       | trip_id, stop_id, stop_sequence | trip_id, stop_id, stop_sequence        | Wan-Yu Lin      |
+|                    | stops.txt            | stop_id, stop_lat, stop_lon     | stop_id, stop_lat, stop_lon            | Wan-Yu Lin      |
 
 ## Methodology
 When there exist frequent taxi trips going from location-X to location-Y, both location-X and location-Y could be 
