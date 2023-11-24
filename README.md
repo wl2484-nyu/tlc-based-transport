@@ -375,6 +375,11 @@ finally divide the number of taxi trips covered by the total number of taxi trip
 #### Expected Output 1: Spark scripts to compute and output the coverage of taxi trips by subway and bus routes
 
 
+## Insights
+
+TBA
+
+
 ## References
 1. [Graph algorithms in Scala](https://github.com/Arminea/scala-graphs)
 2. [Scala: Calculating the Distance Between Two Locations](https://dzone.com/articles/scala-calculating-distance-between-two-locations)
