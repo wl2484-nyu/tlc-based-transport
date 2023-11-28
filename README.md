@@ -202,16 +202,32 @@ neighbors.
 2. The coordinate of each location is represented by the average of its boundary geological coordinates.
 3. The great-circle distance between two locations is calculated using the haversine formula [2].
 
-#### Expected Output 2: Isolated locations per borough
-Output a TSV file with two columns to `/user/wl2484_nyu_edu/project/data/intermediate/isolated_locations`, where each 
-line in the file provides comma-separated isolated locations within a borough. Below is an example:
+#### Expected Output 2: Connected locations per borough
+Output a TSV file as follows with two columns to `/user/wl2484_nyu_edu/project/data/intermediate/connected_locations`, 
+where each line in the file provides comma-separated isolated locations within a borough.
 
 ```tsv
-Borough\tLocationIDs
+borough\tlocation_ids
+Bronx\t3,18,20,31,32,46,47,51,58,59,60,69,78,81,94,119,126,136,147,159,167,168,169,174,182,183,184,185,199,212,213,200,208,220,235,240,241,242,247,248,250,254,259
+Brooklyn\t11,25,14,22,17,21,26,33,29,34,35,36,37,39,40,49,52,54,55,61,62,63,65,72,66,67,71,80,85,76,77,89,91,97,106,108,111,112,149,150,123,133,154,155,165,178,177,181,189,190,188,195,210,217,225,222,227,228,257,255,256
+EWR\t1
+Manhattan\t4,24,12,13,41,45,42,43,48,50,68,79,74,75,87,88,90,125,100,103,103,103,107,113,114,116,120,127,128,151,140,137,141,142,152,143,144,148,153,158,161,162,163,164,170,166,186,194,202,209,211,224,229,230,231,239,232,233,234,236,237,238,263,243,244,246,249,261,262
+Queens\t2,7,8,9,10,15,16,19,27,28,30,38,53,56,56,64,73,70,86,82,83,92,93,95,96,98,101,102,117,121,122,124,129,134,130,139,131,132,135,138,145,146,157,160,171,173,175,179,180,191,192,193,196,203,197,198,201,205,207,215,216,218,219,226,223,258,253,252,260
+Staten Island\t5,6,23,44,84,99,109,110,115,118,156,172,176,187,204,206,214,221,245,251
+```
+
+#### Expected Output 3: Isolated locations per borough
+Output a TSV file with two columns as follows to `/user/wl2484_nyu_edu/project/data/intermediate/isolated_locations`, 
+where each line in the file provides comma-separated isolated locations within a borough.
+
+```tsv
+borough\tlocation_ids
 Bronx\t46,199
 Brooklyn\t
+EWR\t
 Manhattan\t103,104,105,153,194,202
 Queens\t2,27,30,86,117,201
+Staten Island\t
 ```
 
 ### Step-2: Compute taxi trip frequency
