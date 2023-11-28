@@ -1,6 +1,7 @@
 package etl
 
-import etl.Utils.{keyCleanOutput, keySource, parseOpts}
+import etl.Utils.{keyCleanOutput, keyProfileOutput, keySource, parseOpts}
+import org.apache.spark.sql.functions.desc
 import org.apache.spark.sql.{DataFrame, Dataset, SaveMode, SparkSession}
 
 object TaxiZoneLookup {
@@ -41,7 +42,7 @@ object TaxiZoneLookup {
     )
   }
 
-  def loadCleanData(spark: SparkSession, path: String, borough: String = "Manhattan"): Dataset[TaxiZoneLookupTable] = {
+  def loadCleanDataByBorough(spark: SparkSession, path: String, borough: String = "Manhattan"): Dataset[TaxiZoneLookupTable] = {
     import spark.implicits._
 
     spark.read
@@ -51,17 +52,35 @@ object TaxiZoneLookup {
       .as[TaxiZoneLookupTable]
   }
 
+  def profileBoroughByLocationCount(cleanDS: Dataset[TaxiZoneLookupTable], path: String): Unit = {
+    cleanDS.groupBy("borough")
+      .count()
+      .coalesce(1)
+      .withColumnRenamed("count", "location_count")
+      .orderBy(desc("location_count"))
+      .write
+      .mode(SaveMode.Overwrite) // workaround for abnormal path-already-exists error
+      .option("header", true)
+      .csv(f"$path/borough_location_count")
+  }
+
   def main(args: Array[String]): Unit = {
     val options = parseOpts(Map(), args.toList)
     val sourcePath = options(keySource).asInstanceOf[String]
     val cleanOutputPath = options(keyCleanOutput).asInstanceOf[String]
+    val profileOutputPath = options(keyProfileOutput).asInstanceOf[String]
 
     val spark = SparkSession.builder().appName("ETLTaxiZoneLookup").getOrCreate()
-
     val rawDF = loadRawData(spark, sourcePath)
+
+    // cleaning
     val cleanDS = cleanRawData(spark, rawDF)
     saveCleanData(cleanDS, cleanOutputPath)
 
-    //loadCleanData(spark, cleanOutputPath).show()
+    // testing clean data loading by borough
+    loadCleanDataByBorough(spark, cleanOutputPath).show()
+
+    // profiling
+    profileBoroughByLocationCount(cleanDS, profileOutputPath)
   }
 }
