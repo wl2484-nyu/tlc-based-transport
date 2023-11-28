@@ -1,6 +1,6 @@
 package etl
 
-import scala.sys.exit
+import org.apache.spark.sql.{DataFrame, SparkSession}
 
 object Utils {
   val keySource = "source"
@@ -23,5 +23,12 @@ object Utils {
         println("Unknown option " + unknown)
         map
     }
+  }
+
+  def loadRawDataCSV(spark: SparkSession, path: String, headers: Boolean = true, inferSchema: Boolean = true): DataFrame = {
+    spark.read
+      .option("header", headers)
+      .option("inferSchema", inferSchema)
+      .csv(path)
   }
 }

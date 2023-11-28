@@ -224,7 +224,7 @@ where each line in the file provides comma-separated isolated locations within a
 borough\tlocation_ids
 Bronx\t46,199
 Brooklyn\t
-EWR\t
+EWR\t1
 Manhattan\t103,104,105,153,194,202
 Queens\t2,27,30,86,117,201
 Staten Island\t
