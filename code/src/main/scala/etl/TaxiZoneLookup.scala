@@ -27,11 +27,6 @@ object TaxiZoneLookup {
   }
 
   def saveCleanData(cleanDS: Dataset[TaxiZoneLookupTable], path: String): Unit = {
-    //cleanDS.write
-    //  .partitionBy("borough")
-    //  .option("header", true)
-    //  .csv(path)
-
     val boroughs = cleanDS.select("borough")
       .distinct
       .collect
@@ -40,7 +35,7 @@ object TaxiZoneLookup {
     boroughs.foreach(b =>
       cleanDS.filter(r => r.borough == b)
         .write
-        .mode(SaveMode.Overwrite)   // workaround for abnormal path-already-exists error
+        .mode(SaveMode.Overwrite) // workaround for abnormal path-already-exists error
         .option("header", true)
         .csv(f"$path/$b")
     )
@@ -67,6 +62,6 @@ object TaxiZoneLookup {
     val cleanDS = cleanRawData(spark, rawDF)
     saveCleanData(cleanDS, cleanOutputPath)
 
-    loadCleanData(spark, cleanOutputPath).show()
+    //loadCleanData(spark, cleanOutputPath).show()
   }
 }
