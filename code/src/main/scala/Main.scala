@@ -1,6 +1,4 @@
 import org.apache.spark.{SparkConf, SparkContext}
-import etl.CleanTaxiZones.output_path
-import etl.CleanTaxiZoneLookup.output_path
 
 object Main {
 

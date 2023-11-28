@@ -404,3 +404,5 @@ TBA
 ## References
 1. [Graph algorithms in Scala](https://github.com/Arminea/scala-graphs)
 2. [Scala: Calculating the Distance Between Two Locations](https://dzone.com/articles/scala-calculating-distance-between-two-locations)
+3. [Reading Command-Line Arguments in Scala](https://www.baeldung.com/scala/read-command-line-arguments)
+

@@ -2,7 +2,7 @@ package etl
 
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
-object CleanTaxiZones {
+object TaxiZones {
   val input_path = "project/data/source/tlc/zones"
   val output_path = "project/data/clean/tlc/zones"
 
