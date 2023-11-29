@@ -8,8 +8,8 @@ Recommend public transport route(s) based on [TLC Trip Record Data](https://www.
 2. Priyanka Narain (pn2182)
 3. Charvi Gupta (cg4177)
 
-## Expected Outputs
-1. [12/01] Spark code (and results?) for data profiling
+## Due Dates
+1. [12/04] Data ingestion per individual (i.e. spark code for data profiling, cleaning, and ingestion + a report)
 2. [12/11] Presentation in class
 3. [12/15] Spark code and corresponding scripts for methodology implementation + a paper-ish report
 
@@ -231,7 +231,7 @@ Staten Island\t
 ```
 
 ### Step-2: Compute taxi trip frequency
-> Owner: TBA
+> Owner: Priyanka Narain
 
 #### Expected Output 1: Spark scripts to convert dataset-2 into a frequency RDD of (pick-up, drop-off) pair
 Transform taxi trips in **dataset-2** into (pick-up, drop-off) pairs, load the isolated_locations and apply the 
@@ -243,7 +243,7 @@ the 1st element as key, and then reduceByKey to compute the frequency of each un
 3. Discard a pair when its pick-up or drop-off location has no neighbor (i.e. is an isolated location).
 
 ### Step-3: Transform each taxi trip in the frequency RDD into corresponding shortest path
-> Owner: TBA
+> Owner: Priyanka Narain
 
 #### Expected Output 1: Spark scripts to transform frequency RDD of taxi trip into frequency RDD of the shortest path
 For each (pick-up, drop-off) pair in the frequency RDD, apply the Dijkstra's Algorithm to transform the pair into 
@@ -280,7 +280,7 @@ frequency\ttrip_path
 ```
 
 ### Step-4: Compute coverage count for each trip path
-> Owner: TBA
+> Owner: Charvi Gupta
 
 **Trip path coverage count** represents the # of trips covered by such path, i.e. how many taxi trips can be covered if 
 there's such path served as a public transport route.
@@ -316,9 +316,10 @@ coverage_count\ttrip_path
 1\t4,5
 ```
 
-### Step-5: Recommend the top k trip paths of at least length m of the highest coverage count as human-readable routes
-> Owner: TBA
+### Step-5: Recommend routes
+> Owner: Charvi Gupta
 
+**[Approach-1]**
 Select the top k trip paths according to coverage count, and join them with dataset-3 to provide human-readable routes 
 for public transport.
 
@@ -342,7 +343,7 @@ RDD[
 ]
 ```
 
-#### Expected Output 2: Export top k human-readable routes as a TSV file sorted in descending order by coverage count
+#### Expected Output 2*: Export top k human-readable routes as a TSV file sorted in descending order by coverage count
 Sort the coverage count RDD of human-readable route in descending order by the coverage count first, followed by the 
 route length, and then output to `/user/wl2484_nyu_edu/project/data/result/rec_routes_coverage_count` as a 2-column TSV 
 file, where the first column is the coverage_count and the second column is the human-readable route.
@@ -366,8 +367,11 @@ coverage_count\troute
 4\tWest Village,Hudson Sq,SoHo
 ```
 
+**[Approach-2]**
+Apply clustering method and combine the paths according an overlap threshold or something, and set m for # of locations or the length of the path in a cluster.
+
 ### Step-6: Compute the coverage of taxi trips by the top k recommended routes
-> Owner: TBA
+> Owner: Charvi Gupta
 
 Calculate the number of taxi trips that can be covered by the top k recommended routes, i.e. for each path in the trip 
 path frequency TSV file, take its frequency into count if it is a substring of one or more of the top k recommended 
@@ -405,4 +409,3 @@ TBA
 1. [Graph algorithms in Scala](https://github.com/Arminea/scala-graphs)
 2. [Scala: Calculating the Distance Between Two Locations](https://dzone.com/articles/scala-calculating-distance-between-two-locations)
 3. [Reading Command-Line Arguments in Scala](https://www.baeldung.com/scala/read-command-line-arguments)
-
