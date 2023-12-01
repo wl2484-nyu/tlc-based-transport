@@ -5,19 +5,11 @@
 #sbt compile
 #sbt package
 
-APP_VER="0.3.0"
-SCALA_VER="2.12"
-CLASS_NAME="etl.TaxiZones"
-JAR_PATH="tlc-based-transport_${SCALA_VER}-${APP_VER}.jar"
-SOURCE_PATH="/user/wl2484_nyu_edu/project/data/source/tlc/zone_lookup"
-CLEAN_OUTPUT_PATH="/user/wl2484_nyu_edu/project/data/clean/tlc/zone_lookup"
-PROFILE_OUTPUT_PATH="/user/wl2484_nyu_edu/project/data/profile/tlc/zone_lookup"
-
-hadoop fs -rm -r ${CLEAN_OUTPUT_PATH}
-hadoop fs -rm -r ${PROFILE_OUTPUT_PATH}
+hadoop fs -rm -r /user/wl2484_nyu_edu/project/data/clean/tlc/zone_lookup
+hadoop fs -rm -r /user/wl2484_nyu_edu/project/data/profile/tlc/zone_lookup
 
 spark-submit --deploy-mode cluster \
-  --class ${CLASS_NAME} ${JAR_PATH} \
-  --source ${SOURCE_PATH} \
-  --clean-output ${CLEAN_OUTPUT_PATH} \
-  --profile-output ${PROFILE_OUTPUT_PATH}
+  --class etl.TaxiZones tlc-based-transport_2.12-0.3.0.jar \
+  --source /user/wl2484_nyu_edu/project/data/source/tlc/zone_lookup \
+  --clean-output /user/wl2484_nyu_edu/project/data/clean/tlc/zone_lookup \
+  --profile-output /user/wl2484_nyu_edu/project/data/profile/tlc/zone_lookup
