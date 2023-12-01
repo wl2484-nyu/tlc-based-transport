@@ -108,7 +108,7 @@ done;
 
 | Dataset            | File                 | Raw Columns to Keep             | Renamed & New Columns                  | Owner           |
 |--------------------|:---------------------|:--------------------------------|:---------------------------------------|:----------------|
-| dataset-1          | taxi_zones.csv       | the_geom, LocationID, borough   | location_id, avg_lat, avg_lon, borough | Wan-Yu Lin      |
+| dataset-1          | taxi_zones.csv       | the_geom, LocationID, borough   | borough, location_id, avg_lat, avg_lon | Wan-Yu Lin      |
 | dataset-2.1        | *.parquet            | PULocationID, DOLocationID      | pu_location_id, do_location_id         | Charvi Gupta    |
 | dataset-2.2        | *.parquet            | PULocationID, DOLocationID      | pu_location_id, do_location_id         | Charvi Gupta    |
 | dataset-2.3        | *.parquet            | PULocationID, DOLocationID      | pu_location_id, do_location_id         | Priyanka Narain |
@@ -123,9 +123,12 @@ done;
 ### dataset-1
 > Owner: Wan-Yu Lin
 
-1. average number of boundary coordinates per location
-2. average latitude
-3. average longitude
+1. number of locations per borough
+2. total coordinate count per location
+3. total sub-region count per locaiton
+4. max sub-region coordinate count per location
+5. all sub-region coordinate counts in a location
+6. avg latitude and longitude per location
 
 ### dataset-2
 
@@ -224,7 +227,7 @@ where each line in the file provides comma-separated isolated locations within a
 borough\tlocation_ids
 Bronx\t46,199
 Brooklyn\t
-EWR\t
+EWR\t1
 Manhattan\t103,104,105,153,194,202
 Queens\t2,27,30,86,117,201
 Staten Island\t
@@ -408,4 +411,9 @@ TBA
 ## References
 1. [Graph algorithms in Scala](https://github.com/Arminea/scala-graphs)
 2. [Scala: Calculating the Distance Between Two Locations](https://dzone.com/articles/scala-calculating-distance-between-two-locations)
-3. [Reading Command-Line Arguments in Scala](https://www.baeldung.com/scala/read-command-line-arguments)
+3. [RDD vs Dataframe vs Dataset](https://www.databricks.com/blog/2016/07/14/a-tale-of-three-apache-spark-apis-rdds-dataframes-and-datasets.html)
+4. [Spark SQL: API Doc (Scala)](https://spark.apache.org/docs/latest/api/scala/org/apache/spark/sql/index.html)
+5. [Reading Command-Line Arguments in Scala](https://www.baeldung.com/scala/read-command-line-arguments)
+6. [Spark Scala: Operations on One Column](https://haya-toumy.gitbook.io/spark-notes/spark-scala/spark-scala/operations-on-one-column)
+7. [Spark SQL UDFs](https://jaceklaskowski.gitbooks.io/mastering-spark-sql/content/spark-sql-udfs.html)
+8. [Sum a list of tuples by foldLeft](https://stackoverflow.com/questions/30154736/how-to-sum-a-list-of-tuples)

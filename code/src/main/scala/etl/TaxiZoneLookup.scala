@@ -1,18 +1,11 @@
 package etl
 
-import etl.Utils.{keyCleanOutput, keyProfileOutput, keySource, parseOpts}
+import etl.Utils.{keyCleanOutput, keyProfileOutput, keySource, loadRawDataCSV, parseOpts}
 import org.apache.spark.sql.functions.desc
 import org.apache.spark.sql.{DataFrame, Dataset, SaveMode, SparkSession}
 
 object TaxiZoneLookup {
   case class TaxiZoneLookupTable(location_id: Int, zone: String, borough: String)
-
-  def loadRawData(spark: SparkSession, path: String): DataFrame = {
-    spark.read
-      .option("header", true)
-      .option("inferSchema", true)
-      .csv(path)
-  }
 
   def cleanRawData(spark: SparkSession, rawDF: DataFrame): Dataset[TaxiZoneLookupTable] = {
     import spark.implicits._
@@ -20,8 +13,8 @@ object TaxiZoneLookup {
     rawDF.drop("service_zone")
       .select("LocationID", "Zone", "Borough")
       .withColumnRenamed("LocationID", "location_id")
-      .withColumnRenamed("Borough", "borough")
       .withColumnRenamed("Zone", "zone")
+      .withColumnRenamed("Borough", "borough")
       .as[TaxiZoneLookupTable]
       .filter(r => r.borough != "Unknown")
       .coalesce(1)
@@ -70,8 +63,8 @@ object TaxiZoneLookup {
     val cleanOutputPath = options(keyCleanOutput).asInstanceOf[String]
     val profileOutputPath = options(keyProfileOutput).asInstanceOf[String]
 
-    val spark = SparkSession.builder().appName("ETLTaxiZoneLookup").getOrCreate()
-    val rawDF = loadRawData(spark, sourcePath)
+    val spark = SparkSession.builder().appName("TaxiZoneLookupETL").getOrCreate()
+    val rawDF = loadRawDataCSV(spark, sourcePath)
 
     // cleaning
     val cleanDS = cleanRawData(spark, rawDF)
