@@ -14,3 +14,9 @@ spark-submit --deploy-mode cluster \
   --clean-output /user/wl2484_nyu_edu/project/data/clean/tlc/zones \
   --profile-output /user/wl2484_nyu_edu/project/data/profile/tlc/zones
 
+hadoop fs -rm -r /user/wl2484_nyu_edu/project/data/intermediate/borough_connected_locations
+hadoop fs -rm -r /user/wl2484_nyu_edu/project/data/intermediate/borough_isolated_locations
+
+spark-submit --deploy-mode cluster \
+  --class etl.TaxiZoneNeighboring tlc-based-transport_2.12-0.4.0.jar \
+  --intermediate-output /user/wl2484_nyu_edu/project/data/intermediate

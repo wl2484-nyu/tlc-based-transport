@@ -1,5 +1,9 @@
 package etl
 
+import etl.Utils._
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.{SaveMode, SparkSession}
+
 /*
 * Manually constructed using the Taxi Zone maps per borough:
 * Bronx: https://www.nyc.gov/assets/tlc/images/content/pages/about/taxi_zone_map_bronx.jpg
@@ -54,7 +58,7 @@ object TaxiZoneNeighboring {
       254 -> List(),
       259 -> List()
     ),
-    "Brooklyn" -> Map(  // TODO: future work
+    "Brooklyn" -> Map( // TODO: future work
       11 -> List(),
       25 -> List(),
       14 -> List(),
@@ -183,7 +187,7 @@ object TaxiZoneNeighboring {
       261 -> List(13, 231, 209, 87, 88, 12),
       262 -> List(75, 140, 263)
     ),
-    "Queens" -> Map(  // TODO: future work
+    "Queens" -> Map( // TODO: future work
       7 -> List(),
       8 -> List(),
       9 -> List(),
@@ -280,4 +284,47 @@ object TaxiZoneNeighboring {
     "Queens" -> Map(2 -> List(), 27 -> List(), 30 -> List(), 86 -> List(), 117 -> List(), 201 -> List()),
     "Staten Island" -> Map()
   )
+
+  def saveConnectedLocations(spark: SparkSession, path: String): Unit = {
+    import spark.implicits._
+
+    connected.mapValues(_.keys.mkString(","))
+      .toSeq
+      .toDF("borough", "location_ids")
+      .orderBy(asc("borough"))
+      .coalesce(1)
+      .write
+      .mode(SaveMode.Overwrite) // workaround for abnormal path-already-exists error
+      .option("header", true)
+      .option("delimiter", "\t")
+      .option("emptyValue", null) // make sure a column with empty value would not be quoted by double quotes
+      .csv(f"$path/borough_connected_locations")
+  }
+
+  def saveIsolatedLocations(spark: SparkSession, path: String): Unit = {
+    import spark.implicits._
+
+    isolated.mapValues(_.keys.mkString(","))
+      .toSeq
+      .toDF("borough", "location_ids")
+      .orderBy(asc("borough"))
+      .coalesce(1)
+      .write
+      .mode(SaveMode.Overwrite) // workaround for abnormal path-already-exists error
+      .option("header", true)
+      .option("delimiter", "\t")
+      .option("emptyValue", null) // make sure a column with empty value would not be quoted by double quotes
+      .csv(f"$path/borough_isolated_locations")
+  }
+
+  def main(args: Array[String]): Unit = {
+    val options = parseOpts(Map(), args.toList)
+    val intermediateOutputPath = options(keyIntermediateOutput).asInstanceOf[String]
+
+    val spark = SparkSession.builder().appName("TaxiZoneNeighboringETL").getOrCreate()
+
+    // save intermediate data
+    saveConnectedLocations(spark, intermediateOutputPath)
+    saveIsolatedLocations(spark, intermediateOutputPath)
+  }
 }

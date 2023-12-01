@@ -9,6 +9,8 @@ object Utils {
   val optCleanOutput = "--" + keyCleanOutput
   val keyProfileOutput = "profile-output"
   val optProfileOutput = "--" + keyProfileOutput
+  val keyIntermediateOutput = "intermediate-output"
+  val optIntermediateOutput = "--" + keyIntermediateOutput
 
   def parseOpts(map: Map[String, Any], list: List[String]): Map[String, Any] = {
     list match {
@@ -19,6 +21,8 @@ object Utils {
         parseOpts(map ++ Map(keyCleanOutput -> value), tail)
       case `optProfileOutput` :: value :: tail =>
         parseOpts(map ++ Map(keyProfileOutput -> value), tail)
+      case `optIntermediateOutput` :: value :: tail =>
+        parseOpts(map ++ Map(keyIntermediateOutput -> value), tail)
       case unknown :: _ =>
         println("Unknown option " + unknown)
         map
