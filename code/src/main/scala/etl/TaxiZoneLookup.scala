@@ -5,7 +5,7 @@ import org.apache.spark.sql.functions.desc
 import org.apache.spark.sql.{DataFrame, Dataset, SaveMode, SparkSession}
 
 object TaxiZoneLookup {
-  case class TaxiZoneLookupTable(location_id: Int, zone: String, borough: String)
+  case class TaxiZoneLookupTable(location_id: Long, zone: String, borough: String)
 
   def cleanRawData(spark: SparkSession, rawDF: DataFrame): Dataset[TaxiZoneLookupTable] = {
     import spark.implicits._

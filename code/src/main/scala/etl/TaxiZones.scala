@@ -5,7 +5,7 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, Dataset, SaveMode, SparkSession}
 
 object TaxiZones {
-  case class TaxiZoneWithBoundary(borough: String, location_id: Int, boundary: Array[Array[(Double, Double)]])
+  case class TaxiZoneWithBoundary(borough: String, location_id: Long, boundary: Array[Array[(Double, Double)]])
 
   def cleanRawData(spark: SparkSession, rawDF: DataFrame): Dataset[TaxiZoneWithBoundary] = {
     import spark.implicits._
@@ -24,7 +24,7 @@ object TaxiZones {
               (coordinate(0), coordinate(1)) // (latitude, longitude)
             }))
           .sortWith(_.length > _.length) // sort the sub-region boundaries by the number of coordinates within
-        TaxiZoneWithBoundary(borough, locationId.toInt, boundary)
+        TaxiZoneWithBoundary(borough, locationId.toLong, boundary)
       })
   }
 

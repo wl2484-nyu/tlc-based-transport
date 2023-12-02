@@ -275,7 +275,7 @@ object TaxiZoneNeighboring {
       245 -> List(),
       251 -> List()
     )
-  ).asInstanceOf[Map[String, Map[Int, List[Int]]]]
+  ).mapValues(_.map { case (k, v) => k.toLong -> v.map(_.toLong) })
 
   val isolated = Map(
     "Bronx" -> List(46, 199),
@@ -284,7 +284,7 @@ object TaxiZoneNeighboring {
     "Manhattan" -> List(103, 104, 105, 153, 194, 202),
     "Queens" -> List(2, 27, 30, 86, 117, 201),
     "Staten Island" -> List()
-  ).asInstanceOf[Map[String, List[Int]]]
+  ).mapValues(_.map(_.toLong))
 
   def calcGeoDistanceInMeter(startLat: Double, startLon: Double, endLat: Double, endLon: Double): Int = {
     val latDiff = math.toRadians(endLat - startLat)
@@ -303,9 +303,9 @@ object TaxiZoneNeighboring {
     calcGeoDistanceInMeter(startLat, startLon, endLat, endLon) / 1000.0
   }
 
-  def getBoroughConnectedLocationMap(borough: String = "Manhattan"): Map[Int, List[Int]] = connected(borough)
+  def getBoroughConnectedLocationMap(borough: String = "Manhattan"): Map[Long, List[Long]] = connected(borough)
 
-  def getBoroughIsolatedLocationList(borough: String = "Manhattan"): List[Int] = isolated(borough)
+  def getBoroughIsolatedLocationList(borough: String = "Manhattan"): List[Long] = isolated(borough)
 
   def saveConnectedLocations(spark: SparkSession, path: String): Unit = {
     import spark.implicits._
