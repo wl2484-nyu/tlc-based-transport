@@ -411,6 +411,7 @@ TBA
 ## References
 1. [Graph algorithms in Scala](https://github.com/Arminea/scala-graphs)
 2. [Scala: Calculating the Distance Between Two Locations](https://dzone.com/articles/scala-calculating-distance-between-two-locations)
+3. [GeoTrellis](https://github.com/locationtech/geotrellis/blob/master/util/src/main/scala/geotrellis/util/Haversine.scala)
 3. [RDD vs Dataframe vs Dataset](https://www.databricks.com/blog/2016/07/14/a-tale-of-three-apache-spark-apis-rdds-dataframes-and-datasets.html)
 4. [Spark SQL: API Doc (Scala)](https://spark.apache.org/docs/latest/api/scala/org/apache/spark/sql/index.html)
 5. [Reading Command-Line Arguments in Scala](https://www.baeldung.com/scala/read-command-line-arguments)

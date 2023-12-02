@@ -13,6 +13,7 @@ import org.apache.spark.sql.{SaveMode, SparkSession}
 * Staten Island: https://www.nyc.gov/assets/tlc/images/content/pages/about/taxi_zone_map_staten_island.jpg
 * */
 object TaxiZoneNeighboring {
+  val EARTH_RADIUS_M = 6378137d // Equatorial radius (WGS84) in meters
 
   val connected = Map(
     "Bronx" -> Map( // TODO: future work
@@ -284,6 +285,23 @@ object TaxiZoneNeighboring {
     "Queens" -> Map(2 -> List(), 27 -> List(), 30 -> List(), 86 -> List(), 117 -> List(), 201 -> List()),
     "Staten Island" -> Map()
   )
+
+  def calcGeoDistanceInMeter(startLat: Double, startLon: Double, endLat: Double, endLon: Double): Int = {
+    val latDiff = math.toRadians(endLat - startLat)
+    val lonDiff = math.toRadians(endLon - startLon)
+    val lat1 = math.toRadians(startLat)
+    val lat2 = math.toRadians(endLat)
+
+    val a = math.sin(latDiff / 2) * math.sin(latDiff / 2) +
+      math.sin(lonDiff / 2) * math.sin(lonDiff / 2) * math.cos(lat1) * math.cos(lat2)
+    val c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    (EARTH_RADIUS_M * c).toInt
+  }
+
+  def calcGeoDistanceInKilometer(startLat: Double, startLon: Double, endLat: Double, endLon: Double): Double = {
+    calcGeoDistanceInMeter(startLat, startLon, endLat, endLon) / 1000.0
+  }
 
   def saveConnectedLocations(spark: SparkSession, path: String): Unit = {
     import spark.implicits._
