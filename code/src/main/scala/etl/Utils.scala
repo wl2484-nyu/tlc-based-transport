@@ -29,10 +29,12 @@ object Utils {
     }
   }
 
-  def loadRawDataCSV(spark: SparkSession, path: String, headers: Boolean = true, inferSchema: Boolean = true): DataFrame = {
+  def loadRawDataCSV(spark: SparkSession, path: String, headers: Boolean = true, inferSchema: Boolean = true,
+                     delimiter: String = ","): DataFrame = {
     spark.read
       .option("header", headers)
       .option("inferSchema", inferSchema)
+      .option("delimiter", delimiter)
       .csv(path)
   }
 }

@@ -1,23 +1,27 @@
-import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.sql.SparkSession
 
 object Main {
 
   // step-1
   def step1(): Unit = {}
+
   // step-2
   def step2(): Unit = {}
+
   // step-3
   def step3(): Unit = {}
+
   // step-4
   def step4(): Unit = {}
+
   // step-5
   def step5(): Unit = {}
+
   // step-6
   def step6(): Unit = {}
 
   def main(args: Array[String]): Unit = {
-    val conf = new SparkConf().setAppName("RecommendPublicTransportRoutes")
-    val sc = new SparkContext(conf)
+    val spark = SparkSession.builder().appName("RecommendPublicTransportRoutes").getOrCreate()
 
     // TODO: step-1: build up the neighbor zone graph
     step1()
