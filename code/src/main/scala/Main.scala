@@ -1,9 +1,9 @@
+import etl.TaxiZoneNeighboring.{getBoroughConnectedLocationMap, getBoroughIsolatedLocationList}
+import etl.Utils.{keyNeighborsDistanceInput, parseMainOpts}
 import org.apache.spark.sql.SparkSession
 
 object Main {
-
-  // step-1
-  def step1(): Unit = {}
+  val borough = "Manhattan" // target borough
 
   // step-2
   def step2(): Unit = {}
@@ -22,9 +22,14 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     val spark = SparkSession.builder().appName("RecommendPublicTransportRoutes").getOrCreate()
+    val sc = spark.sparkContext
 
-    // TODO: step-1: build up the neighbor zone graph
-    step1()
+    val options = parseMainOpts(Map(), args.toList)
+    val nsDisInputPath = options(keyNeighborsDistanceInput).asInstanceOf[String]
+
+    // step-1: build up the neighbor zone graph
+    val conLocMapBroadcast = sc.broadcast(getBoroughConnectedLocationMap(borough))
+    val isoLocListBroadcast = sc.broadcast(getBoroughIsolatedLocationList(borough))
 
     // TODO: step-2: compute taxi trip frequency
     step2()

@@ -12,6 +12,9 @@ object Utils {
   val keyIntermediateOutput = "intermediate-output"
   val optIntermediateOutput = "--" + keyIntermediateOutput
 
+  val keyNeighborsDistanceInput = "ns-dis-input"
+  val optNeighborsDistanceInput = "--" + keyNeighborsDistanceInput
+
   def parseOpts(map: Map[String, Any], list: List[String]): Map[String, Any] = {
     list match {
       case Nil => map
@@ -23,6 +26,17 @@ object Utils {
         parseOpts(map ++ Map(keyProfileOutput -> value), tail)
       case `optIntermediateOutput` :: value :: tail =>
         parseOpts(map ++ Map(keyIntermediateOutput -> value), tail)
+      case unknown :: _ =>
+        println("Unknown option " + unknown)
+        map
+    }
+  }
+
+  def parseMainOpts(map: Map[String, Any], list: List[String]): Map[String, Any] = {
+    list match {
+      case Nil => map
+      case `optNeighborsDistanceInput` :: value :: tail =>
+        parseOpts(map ++ Map(keyNeighborsDistanceInput -> value), tail)
       case unknown :: _ =>
         println("Unknown option " + unknown)
         map
