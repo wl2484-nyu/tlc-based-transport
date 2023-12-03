@@ -2,7 +2,7 @@ package etl
 
 import etl.Utils._
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.{SaveMode, SparkSession}
+import org.apache.spark.sql.{Dataset, SaveMode, SparkSession}
 
 /*
 * Manually constructed using the Taxi Zone maps per borough:
@@ -13,6 +13,9 @@ import org.apache.spark.sql.{SaveMode, SparkSession}
 * Staten Island: https://www.nyc.gov/assets/tlc/images/content/pages/about/taxi_zone_map_staten_island.jpg
 * */
 object TaxiZoneNeighboring {
+  case class TaxiZoneNeighborDistance(location_id: Long, neighbor_location_id: Long, distance: Int)
+
+  val EARTH_RADIUS_M = 6378137d // Equatorial radius (WGS84) in meters
 
   val connected = Map(
     "Bronx" -> Map( // TODO: future work
@@ -274,16 +277,37 @@ object TaxiZoneNeighboring {
       245 -> List(),
       251 -> List()
     )
-  )
+  ).mapValues(_.map { case (k, v) => k.toLong -> v.map(_.toLong) })
 
   val isolated = Map(
-    "Bronx" -> Map(46 -> List(), 199 -> List()),
-    "Brooklyn" -> Map(),
-    "EWR" -> Map(1 -> List()),
-    "Manhattan" -> Map(103 -> List(), 104 -> List(), 105 -> List(), 153 -> List(), 194 -> List(), 202 -> List()),
-    "Queens" -> Map(2 -> List(), 27 -> List(), 30 -> List(), 86 -> List(), 117 -> List(), 201 -> List()),
-    "Staten Island" -> Map()
-  )
+    "Bronx" -> List(46, 199),
+    "Brooklyn" -> List(),
+    "EWR" -> List(1),
+    "Manhattan" -> List(103, 104, 105, 153, 194, 202),
+    "Queens" -> List(2, 27, 30, 86, 117, 201),
+    "Staten Island" -> List()
+  ).mapValues(_.map(_.toLong))
+
+  def calcGeoDistanceInMeter(startLat: Double, startLon: Double, endLat: Double, endLon: Double): Int = {
+    val latDiff = math.toRadians(endLat - startLat)
+    val lonDiff = math.toRadians(endLon - startLon)
+    val lat1 = math.toRadians(startLat)
+    val lat2 = math.toRadians(endLat)
+
+    val a = math.sin(latDiff / 2) * math.sin(latDiff / 2) +
+      math.sin(lonDiff / 2) * math.sin(lonDiff / 2) * math.cos(lat1) * math.cos(lat2)
+    val c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    (EARTH_RADIUS_M * c).toInt
+  }
+
+  def calcGeoDistanceInKilometer(startLat: Double, startLon: Double, endLat: Double, endLon: Double): Double = {
+    calcGeoDistanceInMeter(startLat, startLon, endLat, endLon) / 1000.0
+  }
+
+  def getBoroughConnectedLocationMap(borough: String = "Manhattan"): Map[Long, List[Long]] = connected(borough)
+
+  def getBoroughIsolatedLocationList(borough: String = "Manhattan"): List[Long] = isolated(borough)
 
   def saveConnectedLocations(spark: SparkSession, path: String): Unit = {
     import spark.implicits._
@@ -304,7 +328,7 @@ object TaxiZoneNeighboring {
   def saveIsolatedLocations(spark: SparkSession, path: String): Unit = {
     import spark.implicits._
 
-    isolated.mapValues(_.keys.mkString(","))
+    isolated.mapValues(_.mkString(","))
       .toSeq
       .toDF("borough", "location_ids")
       .orderBy(asc("borough"))
@@ -317,8 +341,47 @@ object TaxiZoneNeighboring {
       .csv(f"$path/borough_isolated_locations")
   }
 
+  def saveLocationNeighborsDistance(spark: SparkSession, sourcePath: String, outputPath: String): Unit = {
+    import spark.implicits._
+    val sc = spark.sparkContext
+
+    val boroughs = connected.keys.toSeq.filter(_ == "Manhattan") // Manhattan only for the project
+    boroughs.foreach(b => {
+      val zones = TaxiZones.loadCleanDataByBorough(spark, sourcePath, borough = b)
+        .rdd
+        .map(z => z.location_id -> (z.avg_lat, z.avg_lon))
+        .collect
+        .toMap
+      val zonesBroadcast = sc.broadcast(zones)
+
+      val zoneNeighborDisDS = sc.parallelize(connected(b).toSeq.flatMap {
+        case (startLoc, neighbors) => {
+          val (startLat, startLon) = zonesBroadcast.value(startLoc)
+          neighbors.map(endLoc => {
+            val (endLat, endLon) = zonesBroadcast.value(endLoc)
+            TaxiZoneNeighborDistance(startLoc, endLoc, calcGeoDistanceInMeter(startLat, startLon, endLat, endLon))
+          })
+        }
+      }).toDS
+
+      zoneNeighborDisDS.coalesce(1)
+        .write
+        .mode(SaveMode.Overwrite) // workaround for abnormal path-already-exists error
+        .option("header", true)
+        .csv(f"$outputPath/location_neighbors_distance/$b")
+    })
+  }
+
+  def loadLocationNeighborsDistanceByBorough(spark: SparkSession, path: String, borough: String = "Manhattan"): Dataset[TaxiZoneNeighborDistance] = {
+    import spark.implicits._
+
+    loadRawDataCSV(spark, f"$path/$borough")
+      .as[TaxiZoneNeighborDistance]
+  }
+
   def main(args: Array[String]): Unit = {
     val options = parseOpts(Map(), args.toList)
+    val sourcePath = options(keySource).asInstanceOf[String]
     val intermediateOutputPath = options(keyIntermediateOutput).asInstanceOf[String]
 
     val spark = SparkSession.builder().appName("TaxiZoneNeighboringETL").getOrCreate()
@@ -326,5 +389,11 @@ object TaxiZoneNeighboring {
     // save intermediate data
     saveConnectedLocations(spark, intermediateOutputPath)
     saveIsolatedLocations(spark, intermediateOutputPath)
+
+    // compute and save each location's pair-wise distance with its neighbors
+    saveLocationNeighborsDistance(spark, sourcePath, intermediateOutputPath)
+
+    // testing clean data loading by borough
+    loadLocationNeighborsDistanceByBorough(spark, f"$intermediateOutputPath/location_neighbors_distance").show()
   }
 }

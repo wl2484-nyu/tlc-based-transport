@@ -1,26 +1,51 @@
-import org.apache.spark.{SparkConf, SparkContext}
+import etl.TaxiZoneNeighboring.{getBoroughConnectedLocationMap, getBoroughIsolatedLocationList, loadLocationNeighborsDistanceByBorough}
+import etl.Utils.{keyNeighborsDistanceInput, parseMainOpts}
+import graph.{WeightedEdge, WeightedGraph}
+import org.apache.spark.sql.SparkSession
 
 object Main {
+  val borough = "Manhattan" // target borough
 
   // step-1
-  def step1(): Unit = {}
+  def buildZoneNeighboringGraph(spark: SparkSession, neighborsDistanceInputPath: String): WeightedGraph[Long] = {
+    import spark.implicits._
+
+    val zoneNeighborDisDS = loadLocationNeighborsDistanceByBorough(spark, neighborsDistanceInputPath, borough=borough)
+    new WeightedGraph[Long](zoneNeighborDisDS.map(r =>
+      (r.location_id, WeightedEdge(r.neighbor_location_id, r.distance))).rdd
+      .groupByKey()
+      .mapValues(_.toList)
+      .collect
+      .toMap)
+  }
+
   // step-2
   def step2(): Unit = {}
+
   // step-3
   def step3(): Unit = {}
+
   // step-4
   def step4(): Unit = {}
+
   // step-5
   def step5(): Unit = {}
+
   // step-6
   def step6(): Unit = {}
 
   def main(args: Array[String]): Unit = {
-    val conf = new SparkConf().setAppName("RecommendPublicTransportRoutes")
-    val sc = new SparkContext(conf)
+    val spark = SparkSession.builder().appName("RecommendPublicTransportRoutes").getOrCreate()
+    val sc = spark.sparkContext
 
-    // TODO: step-1: build up the neighbor zone graph
-    step1()
+    val options = parseMainOpts(Map(), args.toList)
+    val nsDisInputPath = options(keyNeighborsDistanceInput).asInstanceOf[String]
+
+    // step-1: build up the neighbor zone graph
+    val conLocMapBroadcast = sc.broadcast(getBoroughConnectedLocationMap(borough))
+    val isoLocListBroadcast = sc.broadcast(getBoroughIsolatedLocationList(borough))
+    val graphBroadcast = sc.broadcast(buildZoneNeighboringGraph(spark, nsDisInputPath))
+    assert(graphBroadcast.value.nodes.size == conLocMapBroadcast.value.keys.size)
 
     // TODO: step-2: compute taxi trip frequency
     step2()

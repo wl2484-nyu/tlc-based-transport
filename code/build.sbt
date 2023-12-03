@@ -1,5 +1,5 @@
 name := "tlc-based-transport"
-version := "0.4.0"
+version := "0.6.0"
 scalaVersion := "2.12.14"
 libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % "3.1.2",
