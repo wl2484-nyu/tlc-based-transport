@@ -7,6 +7,8 @@ import org.apache.spark.sql.{DataFrame, Dataset, SaveMode, SparkSession}
 object TaxiZones {
   case class BoroughTaxiZone(borough: String, location_id: Long, boundary: Array[Array[(Double, Double)]])
 
+  case class TaxiZoneGeo(location_id: Long, avg_lat: Double, avg_lon: Double)
+
   def cleanRawData(spark: SparkSession, rawDF: DataFrame): Dataset[BoroughTaxiZone] = {
     import spark.implicits._
 
@@ -96,6 +98,14 @@ object TaxiZones {
         .option("header", true)
         .csv(f"$path/$b")
     )
+  }
+
+  def loadCleanDataByBorough(spark: SparkSession, path: String, borough: String = "Manhattan"): Dataset[TaxiZoneGeo] = {
+    import spark.implicits._
+
+    loadRawDataCSV(spark, f"$path/$borough")
+      .drop("borough")
+      .as[TaxiZoneGeo]
   }
 
   def main(args: Array[String]): Unit = {
