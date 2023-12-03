@@ -36,3 +36,8 @@ object Utils {
       .csv(path)
   }
 }
+
+//  Making changes for reading parquet file
+  def loadRawDataParquet(spark: SparkSession, path: String, year : Int): DataFrame= {
+        spark.read.parquet(s"$path/$year/*/*.parquet")
+  }
