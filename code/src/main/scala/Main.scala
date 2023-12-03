@@ -1,9 +1,23 @@
-import etl.TaxiZoneNeighboring.{getBoroughConnectedLocationMap, getBoroughIsolatedLocationList}
+import etl.TaxiZoneNeighboring.{getBoroughConnectedLocationMap, getBoroughIsolatedLocationList, loadLocationNeighborsDistanceByBorough}
 import etl.Utils.{keyNeighborsDistanceInput, parseMainOpts}
+import graph.{WeightedEdge, WeightedGraph}
 import org.apache.spark.sql.SparkSession
 
 object Main {
   val borough = "Manhattan" // target borough
+
+  // step-1
+  def buildZoneNeighboringGraph(spark: SparkSession, neighborsDistanceInputPath: String): WeightedGraph[Long] = {
+    import spark.implicits._
+
+    val zoneNeighborDisDS = loadLocationNeighborsDistanceByBorough(spark, neighborsDistanceInputPath, borough=borough)
+    new WeightedGraph[Long](zoneNeighborDisDS.map(r =>
+      (r.location_id, WeightedEdge(r.neighbor_location_id, r.distance))).rdd
+      .groupByKey()
+      .mapValues(_.toList)
+      .collect
+      .toMap)
+  }
 
   // step-2
   def step2(): Unit = {}
@@ -30,6 +44,8 @@ object Main {
     // step-1: build up the neighbor zone graph
     val conLocMapBroadcast = sc.broadcast(getBoroughConnectedLocationMap(borough))
     val isoLocListBroadcast = sc.broadcast(getBoroughIsolatedLocationList(borough))
+    val graphBroadcast = sc.broadcast(buildZoneNeighboringGraph(spark, nsDisInputPath))
+    assert(graphBroadcast.value.nodes.size == conLocMapBroadcast.value.keys.size)
 
     // TODO: step-2: compute taxi trip frequency
     step2()
