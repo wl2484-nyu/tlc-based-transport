@@ -5,9 +5,9 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, Dataset, SaveMode, SparkSession}
 
 object TaxiZones {
-  case class TaxiZoneWithBoundary(borough: String, location_id: Long, boundary: Array[Array[(Double, Double)]])
+  case class BoroughTaxiZone(borough: String, location_id: Long, boundary: Array[Array[(Double, Double)]])
 
-  def cleanRawData(spark: SparkSession, rawDF: DataFrame): Dataset[TaxiZoneWithBoundary] = {
+  def cleanRawData(spark: SparkSession, rawDF: DataFrame): Dataset[BoroughTaxiZone] = {
     import spark.implicits._
 
     val pattern = """([1-9][0-9]*),MULTIPOLYGON \(\(\((.*)\)\)\),([a-zA-Z ]+)$""".r
@@ -24,11 +24,11 @@ object TaxiZones {
               (coordinate(0), coordinate(1)) // (latitude, longitude)
             }))
           .sortWith(_.length > _.length) // sort the sub-region boundaries by the number of coordinates within
-        TaxiZoneWithBoundary(borough, locationId.toLong, boundary)
+        BoroughTaxiZone(borough, locationId.toLong, boundary)
       })
   }
 
-  def profileBoroughByLocationCount(cleanDS: Dataset[TaxiZoneWithBoundary], path: String): Unit = {
+  def profileBoroughByLocationCount(cleanDS: Dataset[BoroughTaxiZone], path: String): Unit = {
     cleanDS.groupBy("borough")
       .count()
       .coalesce(1)
@@ -40,7 +40,7 @@ object TaxiZones {
       .csv(f"$path/borough_location_count")
   }
 
-  def profileBoroughLocationByBoundary(cleanDS: Dataset[TaxiZoneWithBoundary], path: String, boroughs: Seq[String]): Unit = {
+  def profileBoroughLocationByBoundary(cleanDS: Dataset[BoroughTaxiZone], path: String, boroughs: Seq[String]): Unit = {
     // define udfs
     val totalCoordinateCount: Array[Array[(Double, Double)]] => Int = _.map(_.length).sum
     val totalCoordinateCountUDF = udf(totalCoordinateCount)
@@ -66,7 +66,7 @@ object TaxiZones {
     )
   }
 
-  def saveSummarizedCleanData(cleanDS: Dataset[TaxiZoneWithBoundary], path: String, boroughs: Seq[String]): Unit = {
+  def saveSummarizedCleanData(cleanDS: Dataset[BoroughTaxiZone], path: String, boroughs: Seq[String]): Unit = {
     // define udfs
     val avgLatOfTheLargestSubRegion: Array[Array[(Double, Double)]] => Double = { boundary =>
       val (count, latSum) = boundary.head.foldLeft((0, 0.0)) {
