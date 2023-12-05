@@ -1,4 +1,4 @@
-# Public Transport Route Recommendation with Manhattan's Taxi Trip Data
+# Public Transport Route Recommendation with Taxi Trip Data
 > Optional items are marked with *
 
 Recommend public transport route(s) based on [TLC Trip Record Data](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page).
