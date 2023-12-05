@@ -1,6 +1,7 @@
 package etl
 
 import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.functions._
 
 object Utils {
   val keySource = "source"
@@ -51,9 +52,22 @@ object Utils {
       .option("delimiter", delimiter)
       .csv(path)
   }
-}
-
-//  Making changes for reading parquet file
-  def loadRawDataParquet(spark: SparkSession, path: String, year : Int): DataFrame= {
-        spark.read.parquet(s"$path/$year/*/*.parquet")
+  //  Making changes for reading parquet file
+  def loadRawDataParquet(spark: SparkSession, path: String, year: Int): DataFrame = {
+    spark.read.parquet(s"$path/$year/*/*.parquet")
   }
+
+  def loadRawTLCDataParquet(spark: SparkSession, path: String): DataFrame = {
+    spark.read.parquet(s"$path.parquet")
+  }
+
+  def getNumericColumnLowerAndUpperBound(df: DataFrame, columnName: String) = {
+    val meanValue = df.agg(stddev(columnName).alias("stddev"), mean(columnName).alias("mean")).head()
+    val stddev_ = meanValue.getDouble(0)
+    val mean_ = meanValue.getDouble(1)
+    // Define the upper and lower bounds
+    val lowerBound = mean_ - 3 * stddev_
+    val upperBound = mean_ + 3 * stddev_
+    (lowerBound, upperBound)
+  }
+}
