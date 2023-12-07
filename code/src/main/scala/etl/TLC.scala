@@ -10,6 +10,8 @@ import java.sql.Timestamp
 object TLC {
   case class TaxiTrip(tlc_type: String, pu_datetime: Timestamp, do_datetime: Timestamp, pu_location_id: Long, do_location_id: Long)
 
+  val DEFAULT_PARTITION_COUNT = 100
+
   val dataColsByType = Seq(
     ("fhv", Seq("pickup_datetime", "dropOff_datetime", "PUlocationID", "DOlocationID")),
     ("fhvhv", Seq("pickup_datetime", "dropoff_datetime", "PULocationID", "DOLocationID")),
@@ -23,7 +25,7 @@ object TLC {
 
     def cleanRawData(rawDF: DataFrame, tlcType: String, oldColNames: Seq[String]): Dataset[TaxiTrip] = {
       rawDF.select(oldColNames.head, oldColNames.tail: _*)
-        .na.drop()  // drop rows with null value in any selected columns
+        .na.drop() // drop rows with null value in any selected columns
         .withColumn(newColNames(0), lit(tlcType))
         .withColumnRenamed(oldColNames(0), newColNames(1))
         .withColumnRenamed(oldColNames(1), newColNames(2))
@@ -42,6 +44,7 @@ object TLC {
         by202301DS.union(from202302DS)
       }
     }.reduce((x, y) => x union y)
+      .repartition(DEFAULT_PARTITION_COUNT, col(newColNames(3)), col(newColNames(4)))
   }
 
   def main(args: Array[String]): Unit = {
