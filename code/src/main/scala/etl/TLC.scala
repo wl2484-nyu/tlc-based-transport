@@ -3,14 +3,15 @@ package etl
 import etl.Utils._
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.LongType
-import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
+import org.apache.spark.sql.{DataFrame, Dataset, SaveMode, SparkSession}
 
 import java.sql.Timestamp
 
 object TLC {
   case class TaxiTrip(tlc_type: String, pu_datetime: Timestamp, do_datetime: Timestamp, pu_location_id: Long, do_location_id: Long)
 
-  val DEFAULT_PARTITION_COUNT = 100
+  val DEFAULT_TOTAL_PARTITION_COUNT = 100
+  val DEFAULT_SINGLE_PARTITION_COUNT = 10
 
   val dataColsByType = Seq(
     ("fhv", Seq("pickup_datetime", "dropOff_datetime", "PUlocationID", "DOlocationID")),
@@ -44,7 +45,27 @@ object TLC {
         by202301DS.union(from202302DS)
       }
     }.reduce((x, y) => x union y)
-      .repartition(DEFAULT_PARTITION_COUNT, col(newColNames(3)), col(newColNames(4)))
+  }
+
+  def saveCleanData(cleanDS: Dataset[TaxiTrip], path: String, byTlcType: Boolean = false): Unit = {
+    if (byTlcType) {
+      cleanDS.repartition(DEFAULT_SINGLE_PARTITION_COUNT, col(newColNames(0)), col(newColNames(3)), col(newColNames(4)))
+        .write
+        .partitionBy(newColNames(0))
+        .mode(SaveMode.Overwrite)
+        .parquet(f"$path/taxi_trips")
+    } else {
+      cleanDS.repartition(DEFAULT_TOTAL_PARTITION_COUNT, col(newColNames(3)), col(newColNames(4)))
+        .write
+        .mode(SaveMode.Overwrite)
+        .parquet(f"$path/taxi_trips")
+    }
+  }
+
+  def loadCleanData(spark: SparkSession, path: String): Dataset[TaxiTrip] = {
+    import spark.implicits._
+
+    spark.read.parquet(f"$path/taxi_trips/*").as[TaxiTrip]
   }
 
   def main(args: Array[String]): Unit = {
@@ -54,6 +75,9 @@ object TLC {
     val cleanOutputPath = options(keyCleanOutput).asInstanceOf[String]
 
     val spark = SparkSession.builder().appName("TLC_ETL").getOrCreate()
-    val ds = loadAndCleanRawData(spark, sourcePath)
+    val cleanDS = loadAndCleanRawData(spark, sourcePath)
+    saveCleanData(cleanDS, cleanOutputPath)
+
+    assert(cleanDS.count() == loadCleanData(spark, cleanOutputPath).count())
   }
 }
