@@ -1,4 +1,4 @@
-package Graph
+package graph
 
 case class WeightedEdge[Long](destination: Long, weight: Int)
 
