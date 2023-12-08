@@ -1,17 +1,16 @@
-package graph
+package Graph
 
 case class WeightedEdge[Long](destination: Long, weight: Int)
 
 class WeightedGraph[Long](adjList: Map[Long, List[WeightedEdge[Long]]]) extends Graph[Long] {
   override def nodes: List[Long] = adjList.keys.toList
-
   override def edges: List[(Long, Long)] = adjList.flatMap {
     case (node, edges) => edges.map(edge => (node, edge.destination))
   }.toList
 
   override def addNode(n: Long): WeightedGraph[Long] = new WeightedGraph(adjList + (n -> List()))
 
-  def addEdge(from: Long, weightedEdge: WeightedEdge[Long]): WeightedGraph[Long] = {
+  private def addEdge(from: Long, weightedEdge: WeightedEdge[Long]): WeightedGraph[Long] = {
     val fromNeighbours = weightedEdge +: adjList.getOrElse(from, Nil)
     val g = new WeightedGraph(adjList + (from -> fromNeighbours))
     val to = weightedEdge.destination
