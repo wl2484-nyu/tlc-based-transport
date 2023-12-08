@@ -1,0 +1,5 @@
+package ShortestPath
+
+class Dijkstra {
+
+}
