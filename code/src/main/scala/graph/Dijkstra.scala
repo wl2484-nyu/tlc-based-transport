@@ -1,7 +1,5 @@
-package Graph
+package graph
 
-import graph.WeightedGraph
-import graph.WeightedEdge
 import scala.util.Try
 
 object Dijkstra {
