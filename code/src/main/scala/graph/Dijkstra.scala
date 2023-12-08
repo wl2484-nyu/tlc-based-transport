@@ -1,14 +1,18 @@
-package graph
+package Graph
+
+import graph.WeightedGraph
+
+import scala.util.Try
 
 object Dijkstra {
-  case class ShortStep[N](parents: Map[N, N], unprocessed: Set[N], distances: Map[N, Int]) {
-    def extractMin(): Option[(N, Int)] = Try(unprocessed.minBy(n => distances(n))).toOption.map(n => (n, distances(n)))
+  case class ShortStep[Long](parents: Map[Long, Long], unprocessed: Set[Long], distances: Map[Long, Int]) {
+    def extractMin(): Option[(Long, Int)] = Try(unprocessed.minBy(n => distances(n))).toOption.map(n => (n, distances(n)))
   }
 
-  def findShortestPaths[N](source: N, graph: WeightedGraph[N]): ShortStep[N] = {
-    val sDistances: Map[N, Int] = graph.nodes.map(_ -> Int.MaxValue).toMap + (source -> 0)
+  def findShortestPaths[Long](source: Long, graph: WeightedGraph[Long]): ShortStep[Long] = {
+    val sDistances: Map[Long, Int] = graph.nodes.map(_ -> Int.MaxValue).toMap + (source -> 0)
 
-    def shortestPath(step: ShortStep[N]): ShortStep[N] = {
+    def shortestPath(step: ShortStep[Long]): ShortStep[Long] = {
       step.extractMin().map {
         case (node, currentDistance) =>
           val newDist = graph.neighboursWithWeights(node).collect {
@@ -28,10 +32,10 @@ object Dijkstra {
     shortestPath(ShortStep(Map(), graph.nodes.toSet, sDistances))
   }
 
-  private def findPathRec[N](node: N, parents: Map[N, N]): List[N] =
+  private def findPathRec[Long](node: Long, parents: Map[Long, Long]): List[Long] =
     parents.get(node).map(parent => node +: findPathRec(parent, parents)).getOrElse(List(node))
 
-  def findPath[N](destination: N, parents: Map[N, N]): List[N] = {
+  def findPath[Long](destination: Long, parents: Map[Long, Long]): List[Long] = {
     findPathRec(destination, parents).reverse
   }
 }
