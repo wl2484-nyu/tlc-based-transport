@@ -58,6 +58,6 @@ object Utils {
   }
 
   def loadintermediateData(spark: SparkSession, path: String, year: Int, cab: String): DataFrame={
-    spark.read.parquet(s"$path/${cab}/${year}/*/*.parquet")
+    spark.read.parquet(s"$path/${cab}/${year}/*.parquet")
   }
 }
