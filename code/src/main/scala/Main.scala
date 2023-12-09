@@ -22,8 +22,8 @@ object Main {
   // step-2
   def createRDDFrequency(spark: SparkSession, intermediatePath: String): RDD[Row] = {
     import spark.implicits._
-    val years = Seq(2020, 2021, 2022, 2023)
-    val cabs = "fhv"
+    val years = Seq(2020, 2021, 2022)
+    val cabs = Seq("fhv","fhvhv","yellow","green")
     val schema = new StructType().add(StructField("PUDOPair", new StructType().add(StructField("pulocationID", LongType, true)).add(StructField("dolocationID", LongType, true)), true)).add(StructField("Frequency", LongType, true))
     var resultDF: DataFrame = spark.createDataFrame(spark.sparkContext.emptyRDD[Row], schema)
     val unionedDFs = for {
@@ -35,7 +35,18 @@ object Main {
   }
 
   // step-3
-  def step3(): Unit = {}
+  def shortestPath(spark: SparkSession, frequencyRDD: Array[Row], graphBroadcast: Broadcast[WeightedGraph[Long]]): Array[(Long, Long, Long, List[Long])] = {
+    frequencyRDD.map { row =>
+      val source = row.getAs[Row](0).getLong(0)
+      val destination = row.getAs[Row](0).getLong(1)
+      val frequency = row.getLong(1)
+
+      val result = Dijkstra.findShortestPaths(source, graphBroadcast.value)
+
+      // Return a tuple containing source, destination, frequency, and shortest path
+      (source, destination, frequency, Dijkstra.findPath(destination, result.parents))
+    }
+  }
 
   // step-4
   def step4(): Unit = {}
@@ -61,11 +72,11 @@ object Main {
     assert(graphBroadcast.value.nodes.size == conLocMapBroadcast.value.keys.size)
 
     // TODO: step-2: compute taxi trip frequency
-    val frequencyRDD = sc.broadcast(createRDDFrequency(spark,intermediatePath))
+    val frequencyData = createRDDFrequency(spark, intermediatePath).collect()
     
     // TODO: step-3: transform each taxi trip in the frequency RDD into corresponding shortest path
-    step3()
-
+    val shortestPath = shortestPath(spark,frequencyData,graphBroadcast)
+    
     // TODO: step-4: compute coverage count for each trip path
     step4()
 
