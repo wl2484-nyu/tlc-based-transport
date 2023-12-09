@@ -43,7 +43,7 @@ object Main {
 
       val result = Dijkstra.findShortestPaths(source, graphBroadcast.value)
 
-      // Return a tuple containing source, destination, frequency, and shortest path
+      // Return source, destination, frequency, and shortest path
       (source, destination, frequency, Dijkstra.findPath(destination, result.parents))
     }
   }
