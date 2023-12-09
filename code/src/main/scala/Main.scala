@@ -20,7 +20,19 @@ object Main {
   }
 
   // step-2
-  def step2(): Unit = {}
+  def createRDDFrequency(spark: SparkSession, intermediatePath: String): RDD[Row] = {
+    import spark.implicits._
+    val years = Seq(2020, 2021, 2022, 2023)
+    val cabs = "fhv"
+    val schema = new StructType().add(StructField("PUDOPair", new StructType().add(StructField("pulocationID", LongType, true)).add(StructField("dolocationID", LongType, true)), true)).add(StructField("Frequency", LongType, true))
+    var resultDF: DataFrame = spark.createDataFrame(spark.sparkContext.emptyRDD[Row], schema)
+    val unionedDFs = for {
+      cab <- cabs
+      year <- years
+    } yield loadintermediateData(spark, intermediatePath, year, cab)
+    resultDF = unionedDFs.reduce((df1, df2) => df1.union(df2))
+    resultDF.rdd
+  }
 
   // step-3
   def step3(): Unit = {}
@@ -48,8 +60,8 @@ object Main {
     assert(graphBroadcast.value.nodes.size == conLocMapBroadcast.value.keys.size)
 
     // TODO: step-2: compute taxi trip frequency
-    step2()
-
+    val frequencyRDD = sc.broadcast(createRDDFrequency(spark,intermediatePath))
+    
     // TODO: step-3: transform each taxi trip in the frequency RDD into corresponding shortest path
     step3()
 
