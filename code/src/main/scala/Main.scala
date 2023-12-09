@@ -52,6 +52,7 @@ object Main {
 
     val options = parseMainOpts(Map(), args.toList)
     val nsDisInputPath = options(keyNeighborsDistanceInput).asInstanceOf[String]
+    val intermediatePath = "/user/wl2484_nyu_edu/project/data/intermediateFrequencyData/tlc/cabs"
 
     // step-1: build up the neighbor zone graph
     val conLocMapBroadcast = sc.broadcast(getBoroughConnectedLocationMap(borough))
