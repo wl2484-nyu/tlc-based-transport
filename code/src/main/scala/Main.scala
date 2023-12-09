@@ -1,6 +1,6 @@
 import etl.TLC.{TaxiTrip, loadCleanData}
 import etl.TaxiZoneNeighboring.{getBoroughConnectedLocationList, getBoroughIsolatedLocationList, loadLocationNeighborsDistanceByBorough}
-import etl.Utils.{keyNeighborsDistanceInput, keyPathFreqOutput, keyTLCInput, parseMainOpts}
+import etl.Utils._
 import graph.{Dijkstra, WeightedEdge, WeightedGraph}
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql.functions.{count, desc}
@@ -92,6 +92,7 @@ object Main {
     // step-3: transform each taxi trip in the frequency dataset into corresponding shortest path
     val pathFreqDS = getTripPathFreqDS(spark, tripFreqDS, graphBroadcast)
     savePathFreqOutput(pathFreqDS, pathFreqOutputPath)
+    assert(pathFreqDS.count() == loadRawDataCSV(spark, pathFreqOutputPath, delimiter = "\t").count())
 
     // TODO: step-4: compute coverage count for each trip path
     step4()
