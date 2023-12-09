@@ -305,7 +305,7 @@ object TaxiZoneNeighboring {
     calcGeoDistanceInMeter(startLat, startLon, endLat, endLon) / 1000.0
   }
 
-  def getBoroughConnectedLocationMap(borough: String = "Manhattan"): Map[Long, List[Long]] = connected(borough)
+  def getBoroughConnectedLocationList(borough: String = "Manhattan"): List[Long] = connected(borough).keys.toList
 
   def getBoroughIsolatedLocationList(borough: String = "Manhattan"): List[Long] = isolated(borough)
 
