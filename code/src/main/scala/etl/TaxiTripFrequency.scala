@@ -1,9 +1,9 @@
-
 package etl
 import etl.Utils.{keyCleanOutput, keySource, loadintermediateData, parseOpts}
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
-import org.apache.spark.sql.types.{StructType, StructField, LongType}
+import org.apache.spark.sql.{DataFrame, Row, SaveMode, SparkSession}
+import org.apache.spark.sql.types.{LongType, StructField, StructType}
+import org.apache.spark.rdd.RDD
 
 object TaxiTripFrequency {
   val spark = SparkSession.builder().appName("TaxiTripFrequency_ETL").getOrCreate()
@@ -26,12 +26,16 @@ object TaxiTripFrequency {
     val frequencyDF = manhattanDF.groupBy("pulocationID", "dolocationID").agg(count("*")).alias("frequency")
 
     //convert into pair DF
-    frequencyDF.selectExpr("struct(pulocationID, dolocationID) as `PU-DO Pair`", "`count(1)` as Frequency")
+    frequencyDF.withColumn("PUDOPair", struct("pulocationID", "dolocationID")).select("PUDOPair", "count(1)").withColumnRenamed("count(1)", "Frequency")
 
   }
-  def saveCleanData(freqDF: DataFrame, cleanOutputPath: String, year: Int, cab: String): Unit = {
+  def saveCleanData(freqDF: DataFrame, cleanOutputPath: String,year: Int, cab: String): Unit = {
     freqDF.repartition(100).write.mode(SaveMode.Overwrite).parquet(s"$cleanOutputPath/${cab}/${year}/${cab}_intermediate_${year}.parquet")
   }
+
+//  def loadCleanSavedData(spark: SparkSession, path: String, cab: String, year:Int): DataFrame = {
+//    loadintermediateData(spark,path,year,cab)
+//  }
 
   def main(args: Array[String]): Unit = {
     val years = Seq(2020, 2021, 2022, 2023)
@@ -42,7 +46,9 @@ object TaxiTripFrequency {
     val intermediatePath = "/user/wl2484_nyu_edu/project/data/intermediate/location_neighbors_distance/Manhattan/part-00000-7b78c933-8e72-43de-ad42-0ea0202969e4-c000.csv"
     val intermediateDF= spark.read.option("header", true).option("inferSchema", true).csv(intermediatePath)
 
-    for (year <- years; cab <- cabs) {
+    var combinedRDD: RDD[Row] = spark.sparkContext.emptyRDD[Row]
+
+    for (cab <- cabs; year <- years) {
       val rawDF = loadintermediateData(spark, sourcePath,year, cab)
       // cleaning
       val freqDF = cleanRawData(rawDF, intermediateDF)
