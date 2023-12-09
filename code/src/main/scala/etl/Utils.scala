@@ -40,11 +40,11 @@ object Utils {
     list match {
       case Nil => map
       case `optNeighborsDistanceInput` :: value :: tail =>
-        parseOpts(map ++ Map(keyNeighborsDistanceInput -> value), tail)
+        parseMainOpts(map ++ Map(keyNeighborsDistanceInput -> value), tail)
       case `optTLCInput` :: value :: tail =>
-        parseOpts(map ++ Map(keyTLCInput -> value), tail)
+        parseMainOpts(map ++ Map(keyTLCInput -> value), tail)
       case `optPathFreqOutput` :: value :: tail =>
-        parseOpts(map ++ Map(keyPathFreqOutput -> value), tail)
+        parseMainOpts(map ++ Map(keyPathFreqOutput -> value), tail)
       case unknown :: _ =>
         println("Unknown option " + unknown)
         map
