@@ -39,7 +39,7 @@ object TaxiTripFrequency {
 
   def main(args: Array[String]): Unit = {
     val years = Seq(2020, 2021, 2022, 2023)
-    val cabs = Seq("fhv","hvfhv","yellow","green")
+    val cabs = Seq("fhv","fhvhv","yellow","green")
     val options = parseOpts(Map(), args.toList)
     val sourcePath = options(keySource).asInstanceOf[String]
     val cleanOutputPath = options(keyCleanOutput).asInstanceOf[String]
