@@ -14,16 +14,16 @@ object TaxiTripFrequency {
     val manhattanLocationIDs = intermediateDF.select("location_id").distinct().collect().map(_.getInt(0))
 
     // pick-up and drop-off locations are the same.
-    val uniquePUDO = rawDF.filter(col("pulocationID") !== col("dolocationID"))
+    val uniquePUDO = rawDF.filter(col("pulocationID") =!= col("dolocationID"))
 
     // isolated location
-    val nonIsolatedDF = uniquePUDO.filter(!col("pulocationID").isin(isolatedLocations: _*) || !col("dolocationID").isin(isolatedLocations: _*))
+    val nonIsolatedDF = uniquePUDO.filter(!col("pulocationID").isin(isolatedLocations: _*) && !col("dolocationID").isin(isolatedLocations: _*))
 
     // in manhattan borough
     val manhattanDF = nonIsolatedDF.filter(col("pulocationID").isin(manhattanLocationIDs: _*) && col("dolocationID").isin(manhattanLocationIDs: _*))
 
     // count the frequency of location pairs
-    val frequencyDF = manhattanDF.groupBy("pulocationID", "dolocationID").agg(count("*")).alias("frequency")
+    val frequencyDF = manhattanDF.groupBy("pulocationID", "dolocationID").agg(count("*") as "frequency")
 
     //convert into pair DF
     frequencyDF.withColumn("PUDOPair", struct("pulocationID", "dolocationID")).select("PUDOPair", "count(1)").withColumnRenamed("count(1)", "Frequency")
