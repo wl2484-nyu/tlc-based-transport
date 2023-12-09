@@ -1,17 +1,17 @@
 import etl.TLC.{TaxiTrip, loadCleanData}
 import etl.TaxiZoneNeighboring.{getBoroughConnectedLocationList, getBoroughIsolatedLocationList, loadLocationNeighborsDistanceByBorough}
-import etl.Utils.{keyNeighborsDistanceInput, keyTLCInput, parseMainOpts}
+import etl.Utils.{keyNeighborsDistanceInput, keyPathFreqOutput, keyTLCInput, parseMainOpts}
 import graph.{Dijkstra, WeightedEdge, WeightedGraph}
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.sql.functions.count
-import org.apache.spark.sql.{Dataset, SparkSession}
+import org.apache.spark.sql.functions.{count, desc}
+import org.apache.spark.sql.{Dataset, SaveMode, SparkSession}
 
 object Main {
   val borough = "Manhattan" // target borough
 
   case class TaxiTripFreq(pu_location_id: Long, do_location_id: Long, frequency: BigInt)
 
-  case class TripPathFreq(frequency: BigInt, path: String)
+  case class TripPathFreq(frequency: BigInt, trip_path: String)
 
   // step-1
   def buildZoneNeighboringGraph(spark: SparkSession, neighborsDistanceInputPath: String): WeightedGraph[Long] = {
@@ -40,14 +40,25 @@ object Main {
   }
 
   // step-3
-  def shortestPath(spark: SparkSession, frequencyDS: Dataset[TaxiTripFreq], graphBroadcast: Broadcast[WeightedGraph[Long]]): Dataset[TripPathFreq] = {
+  def getTripPathFreqDS(spark: SparkSession, tripFreqDS: Dataset[TaxiTripFreq],
+                        graphBroadcast: Broadcast[WeightedGraph[Long]]): Dataset[TripPathFreq] = {
     import spark.implicits._
 
-    frequencyDS.map(tf => {
+    tripFreqDS.map(tf => {
       val result = Dijkstra.findShortestPaths(tf.pu_location_id, graphBroadcast.value)
       val path = Dijkstra.findPath(tf.do_location_id, result.parents)
       TripPathFreq(tf.frequency, path.mkString(","))
     })
+  }
+
+  def savePathFreqOutput(tripPathFreqDS: Dataset[TripPathFreq], path: String): Unit = {
+    tripPathFreqDS.coalesce(1)
+      .orderBy(desc("frequency"))
+      .write
+      .mode(SaveMode.Overwrite) // workaround for abnormal path-already-exists error
+      .option("header", true)
+      .option("delimiter", "\t")
+      .csv(f"$path")
   }
 
   // step-4
@@ -66,6 +77,7 @@ object Main {
     val options = parseMainOpts(Map(), args.toList)
     val nsDisInputPath = options(keyNeighborsDistanceInput).asInstanceOf[String]
     val tlcInputPath = options(keyTLCInput).asInstanceOf[String]
+    val pathFreqOutputPath = options(keyPathFreqOutput).asInstanceOf[String]
 
     // step-1: build up the neighbor zone graph
     val conLocList = getBoroughConnectedLocationList(borough)
@@ -75,9 +87,11 @@ object Main {
 
     // step-2: compute taxi trip frequency
     val rawTrips = loadCleanData(spark, tlcInputPath)
-    val freqDS = getTaxiTripFreqDS(spark, rawTrips, conLocList, isoLocList)
+    val tripFreqDS = getTaxiTripFreqDS(spark, rawTrips, conLocList, isoLocList)
 
-    // TODO: step-3: transform each taxi trip in the frequency RDD into corresponding shortest path
+    // step-3: transform each taxi trip in the frequency dataset into corresponding shortest path
+    val pathFreqDS = getTripPathFreqDS(spark, tripFreqDS, graphBroadcast)
+    savePathFreqOutput(pathFreqDS, pathFreqOutputPath)
 
     // TODO: step-4: compute coverage count for each trip path
     step4()

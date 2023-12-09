@@ -16,6 +16,8 @@ object Utils {
   val optNeighborsDistanceInput = "--" + keyNeighborsDistanceInput
   val keyTLCInput = "tlc-input"
   val optTLCInput = "--" + keyTLCInput
+  val keyPathFreqOutput = "path-freq-output"
+  val optPathFreqOutput = "--" + keyPathFreqOutput
 
   def parseOpts(map: Map[String, Any], list: List[String]): Map[String, Any] = {
     list match {
@@ -41,6 +43,8 @@ object Utils {
         parseOpts(map ++ Map(keyNeighborsDistanceInput -> value), tail)
       case `optTLCInput` :: value :: tail =>
         parseOpts(map ++ Map(keyTLCInput -> value), tail)
+      case `optPathFreqOutput` :: value :: tail =>
+        parseOpts(map ++ Map(keyPathFreqOutput -> value), tail)
       case unknown :: _ =>
         println("Unknown option " + unknown)
         map
