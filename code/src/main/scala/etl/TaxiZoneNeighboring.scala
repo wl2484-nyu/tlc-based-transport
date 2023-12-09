@@ -2,7 +2,7 @@ package etl
 
 import etl.Utils._
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.{DataFrame, Dataset, SaveMode, SparkSession}
+import org.apache.spark.sql.{Dataset, SaveMode, SparkSession}
 
 /*
 * Manually constructed using the Taxi Zone maps per borough:
@@ -305,7 +305,7 @@ object TaxiZoneNeighboring {
     calcGeoDistanceInMeter(startLat, startLon, endLat, endLon) / 1000.0
   }
 
-  def getBoroughConnectedLocationMap(borough: String = "Manhattan"): Map[Long, List[Long]] = connected(borough)
+  def getBoroughConnectedLocationList(borough: String = "Manhattan"): List[Long] = connected(borough).keys.toList
 
   def getBoroughIsolatedLocationList(borough: String = "Manhattan"): List[Long] = isolated(borough)
 

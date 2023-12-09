@@ -65,7 +65,7 @@ object TLC {
   def loadCleanData(spark: SparkSession, path: String): Dataset[TaxiTrip] = {
     import spark.implicits._
 
-    spark.read.parquet(f"$path/taxi_trips/*").as[TaxiTrip]
+    spark.read.parquet(f"$path/*").as[TaxiTrip]
   }
 
   def main(args: Array[String]): Unit = {
