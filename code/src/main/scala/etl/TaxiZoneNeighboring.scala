@@ -2,7 +2,7 @@ package etl
 
 import etl.Utils._
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.{Dataset, SaveMode, SparkSession}
+import org.apache.spark.sql.{DataFrame, Dataset, SaveMode, SparkSession}
 
 /*
 * Manually constructed using the Taxi Zone maps per borough:
