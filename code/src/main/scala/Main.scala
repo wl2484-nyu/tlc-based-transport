@@ -66,7 +66,8 @@ object Main {
   }
 
   def savePathCoverageOutput(tripPathCoverageDS: Dataset[TripPathCoverageCount], path: String): Unit = {
-    tripPathCoverageDS.coalesce(1)
+    val toSaveDS = tripPathCoverageDS.select("cumm_freq", "trip_path").as[TripPathCoverageCount]
+    toSaveDS.coalesce(1)
       .orderBy(desc("cumm_freq"))
       .write
       .mode(SaveMode.Overwrite) // workaround for abnormal path-already-exists error
