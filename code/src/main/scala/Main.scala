@@ -3,10 +3,12 @@ import etl.TaxiZoneNeighboring.{getBoroughConnectedLocationList, getBoroughIsola
 import etl.Utils._
 import graph.{Dijkstra, WeightedEdge, WeightedGraph}
 import union_find.UnionFind
+import scala.collection.Map
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql.functions.{count, desc}
 import org.apache.spark.sql.{DataFrame, Dataset, SaveMode, SparkSession}
 import org.apache.spark.sql.types.{ArrayType, IntegerType, LongType, StringType, StructField, StructType}
+import org.apache.spark.sql.functions._
 
 object Main {
   val borough = "Manhattan" // target borough
@@ -77,10 +79,10 @@ object Main {
   }
 
   // step-4 util
-  def topKTripsWithAtleastMStops(k: Int, m: Int, ds: Dataset[TripPathCoverageCount]): Array[TripPathCoverageCount] = {
+  def topKTripsWithAtleastMStops(k: Int, m: Int, ds: Dataset[TripPathCoverageCount]): Dataset[TripPathCoverageCount] = {
     val filteredDS: Dataset[TripPathCoverageCount] = ds.filter({ data => data.trip_path.split(",").length >= m })
     val sortedDS: Dataset[TripPathCoverageCount] = filteredDS.orderBy($"coverage_count".desc)
-    sortedDS.limit(k).collect()
+    sortedDS.limit(k).as[TripPathCoverageCount]
   }
 
 
@@ -128,8 +130,29 @@ object Main {
 
   }
 
+  // step-5 util
+  def mapLocationIds(input: String, idMap: Map[Integer, String]): String = {
+    val inputValues = input.split(",").map(_.trim)
+    val mappedValues = inputValues.flatMap { inputValue =>
+      idMap.get(Integer.valueOf(inputValue))
+    }
+
+    if (mappedValues.nonEmpty) {
+      mappedValues.mkString(", ")
+    } else {
+      s"No mapping found for input: $input"
+    }
+  }
+
+  val mapLocationIdsUDF: Any = udf(mapLocationIds)
+
   // step-5
-  def step5(): Unit = {}
+  def getTopKHumanReadbleRouteWithCoverage(spark: SparkSession, k: Int, m: Int, pathCoverageCountDF: DataFrame, lookupMap: Map[Int, String]) = {
+    // get top-K routes with atleast m stops
+    var topKDF = topKTripsWithAtleastMStops(10, 3, pathCoverageCountDS).toDF()
+    topKDF.withColumn("route", mapLocationIdsUDF(col("trip_path"), mapLocationIdsUDF))
+
+  }
 
   // step-6
   def step6(): Unit = {}
@@ -168,7 +191,13 @@ object Main {
     assert(pathCoverageCountDS.count() == loadRawDataCSV(spark, pathCoverageOutputPath, delimiter = "\t").count())
 
     // TODO: step-5: Recommend the top k trip paths of at least length m of the highest coverage count as human-readable routes
-    step5()
+    val pathCoverageCountDF = loadRawDataCSV(spark, pathCoverageOutputPath, delimiter = "\t")
+    val lookupPath = "/user/wl2484_nyu_edu/project/data/source/tlc/zone_lookup"
+    val lookupDF = loadRawDataCSV(spark, lookupPath, delimiter = ",")
+    val lookupMap: Map[Int, String] = lookupDF.withColumn("Zone1", split(col("Zone"), "/")(0)).select("LocationID", "Zone1").as[(Int, String)].rdd.collectAsMap()
+    val k = 10
+    val m = 3
+    val topKHumanReadableRouteDS = getTopKHumanReadbleRouteWithCoverage(spark, k, m, pathCoverageCountDF, lookupMap)
 
     // TODO: step-6: Compute the coverage of taxi trips by the top k recommended routes
     step6()
