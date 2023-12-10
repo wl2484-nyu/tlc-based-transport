@@ -15,7 +15,7 @@ object Main {
 
   case class TripPathFreq(frequency: BigInt, trip_path: String)
 
-  case class TripPathCoverageCount(trip_path: String, cumm_freq: BigInt)
+  case class TripPathCoverageCount(trip_path: String, coverage_count: BigInt)
 
   // step-1
   def buildZoneNeighboringGraph(spark: SparkSession, neighborsDistanceInputPath: String): WeightedGraph[Long] = {
@@ -66,9 +66,9 @@ object Main {
   }
 
   def savePathCoverageOutput(tripPathCoverageDS: Dataset[TripPathCoverageCount], path: String): Unit = {
-    val toSaveDS = tripPathCoverageDS.select("cumm_freq", "trip_path").as[TripPathCoverageCount]
+    val toSaveDS = tripPathCoverageDS.select("coverage_count", "trip_path").as[TripPathCoverageCount]
     toSaveDS.coalesce(1)
-      .orderBy(desc("cumm_freq"))
+      .orderBy(desc("coverage_count"))
       .write
       .mode(SaveMode.Overwrite) // workaround for abnormal path-already-exists error
       .option("header", true)
@@ -79,13 +79,13 @@ object Main {
   // step-4 util
   def topKTripsWithAtleastMStops(k: Int, m: Int, ds: Dataset[TripPathCoverageCount]): Array[TripPathCoverageCount] = {
     val filteredDS: Dataset[TripPathCoverageCount] = ds.filter({ data => data.trip_path.split(",").length >= m })
-    val sortedDS: Dataset[TripPathCoverageCount] = filteredDS.orderBy($"cumm_freq".desc)
+    val sortedDS: Dataset[TripPathCoverageCount] = filteredDS.orderBy($"coverage_count".desc)
     sortedDS.limit(k).collect()
   }
 
 
   // step-4
-  def computeTripCoverageCount(spark: SparkSession, freqPathDF: DataFrame, ufString: UnionFind[String]): Unit = {
+  def computeTripCoverageCount(spark: SparkSession, freqPathDF: DataFrame, ufString: UnionFind[String]):  Dataset[TripPathCoverageCount] = {
     // Compute pairRDD key->path, value->frequency of trips for that path
     val pathFreqRDD = freqPathDF.rdd.map(row => (row.getString(1), row.getInt(0)))
     val trips = pathFreqRDD.keys.collect()
@@ -118,12 +118,13 @@ object Main {
     // Left join RDD1 and RDD2
     val joinedRDD = pathFreqRDD.leftOuterJoin(pathParentRDD)
     // Perform left outer join and sum up the values
-    val pathCoverageRDD = joinedRDD
+    val pathCoverageCountRDD = joinedRDD
       .map { case (key, (value, opt)) => (opt.getOrElse("invalidParent"), value) } // Extract key and value
       .reduceByKey(_ + _) // Sum up the trips that each parent covers
 
-    val pathCoverageDS: Dataset[TripPathCoverageCount] = pathCoverageRDD.map({
-      case (trip_path, cumm_freq) => TripPathCoverageCount(trip_path, cumm_freq)}).toDS()
+    pathCoverageCountRDD.map({
+      case (trip_path, coverage_count) => TripPathCoverageCount(trip_path, coverage_count)
+    }).toDS()
 
   }
 
@@ -162,9 +163,9 @@ object Main {
 
     // step-4: compute coverage count for each trip path
     val freqPathDF = loadRawDataCSV(spark, pathFreqOutputPath, delimiter = "\t")
-    val pathCoverageDS = computeTripCoverageCount(spark, freqPathDF, ufString)
-    savePathCoverageOutput(pathCoverageDS, pathCoverageOutputPath)
-    assert(pathCoverageDS.count() == loadRawDataCSV(spark, pathCoverageOutputPath, delimiter = "\t").count())
+    val pathCoverageCountDS = computeTripCoverageCount(spark, freqPathDF, ufString)
+    savePathCoverageOutput(pathCoverageCountDS, pathCoverageOutputPath)
+    assert(pathCoverageCountDS.count() == loadRawDataCSV(spark, pathCoverageOutputPath, delimiter = "\t").count())
 
     // TODO: step-5: Recommend the top k trip paths of at least length m of the highest coverage count as human-readable routes
     step5()
