@@ -34,7 +34,7 @@ object Main {
     rawTrips.select("pu_location_id", "do_location_id")
       .groupBy("pu_location_id", "do_location_id")
       .agg(count("*") as "frequency")
-      .filter($"pu_location_id" =!= $"do_location_id")
+      //.filter($"pu_location_id" =!= $"do_location_id")
       .filter($"pu_location_id".isin(conLocList: _*) && $"do_location_id".isin(conLocList: _*))
       .filter(!$"pu_location_id".isin(isoLocList: _*) && !$"do_location_id".isin(isoLocList: _*))
       .as[TaxiTripFreq]
@@ -111,6 +111,7 @@ object Main {
   def main(args: Array[String]): Unit = {
     val spark = SparkSession.builder().appName("RecommendPublicTransportRoutes").getOrCreate()
     val sc = spark.sparkContext
+    import spark.implicits._
 
     val options = parseMainOpts(Map(), args.toList)
     val nsDisInputPath = options(keyNeighborsDistanceInput).asInstanceOf[String]
@@ -130,7 +131,7 @@ object Main {
     profileTaxiTrips(spark, tripFreqDS, profileOutputPath)
 
     // step-3: transform each taxi trip in the frequency dataset into corresponding shortest path
-    val pathFreqDS = getTripPathFreqDS(spark, tripFreqDS, graphBroadcast)
+    val pathFreqDS = getTripPathFreqDS(spark, tripFreqDS.filter($"pu_location_id" =!= $"do_location_id"), graphBroadcast)
     savePathFreqOutput(pathFreqDS, pathFreqOutputPath)
     assert(pathFreqDS.count() == loadRawDataCSV(spark, pathFreqOutputPath, delimiter = "\t").count())
     tripFreqDS.unpersist()
