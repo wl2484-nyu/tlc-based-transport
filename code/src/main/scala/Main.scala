@@ -3,7 +3,7 @@ import etl.TaxiZoneNeighboring.{getBoroughConnectedLocationList, getBoroughIsola
 import etl.Utils._
 import graph.{Dijkstra, WeightedEdge, WeightedGraph}
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.sql.functions.{count, desc}
+import org.apache.spark.sql.functions.{col, count, desc, sum}
 import org.apache.spark.sql.{Dataset, SaveMode, SparkSession}
 
 object Main {
@@ -26,6 +26,7 @@ object Main {
       .toMap)
   }
 
+  // step-2
   def getTaxiTripFreqDS(spark: SparkSession, rawTrips: Dataset[TaxiTrip], conLocList: List[Long],
                         isoLocList: List[Long]): Dataset[TaxiTripFreq] = {
     import spark.implicits._
@@ -37,6 +38,42 @@ object Main {
       .filter($"pu_location_id".isin(conLocList: _*) && $"do_location_id".isin(conLocList: _*))
       .filter(!$"pu_location_id".isin(isoLocList: _*) && !$"do_location_id".isin(isoLocList: _*))
       .as[TaxiTripFreq]
+  }
+
+  def profileTaxiTrips(spark: SparkSession, tripFreqDS: Dataset[TaxiTripFreq], path: String): Unit = {
+    import spark.implicits._
+
+    val tripFreqDS1 = tripFreqDS.filter($"pu_location_id" === $"do_location_id") // trips to and from the same location
+    tripFreqDS1.groupBy("pu_location_id", "do_location_id")
+      .agg(sum("frequency") as "frequency")
+      .coalesce(1)
+      .orderBy(desc("frequency"))
+      .withColumn("percentage", col("frequency") * 100 / tripFreqDS1.agg(sum("frequency")).head.getAs[Long](0))
+      .write
+      .mode(SaveMode.Overwrite) // workaround for abnormal path-already-exists error
+      .option("header", true)
+      .csv(f"$path/$borough/single_location_trip_count_dist")
+
+    val tripFreqDS2 = tripFreqDS.filter($"pu_location_id" =!= $"do_location_id") // trips to and from different locations
+    tripFreqDS2.groupBy("pu_location_id")
+      .agg(sum("frequency") as "frequency")
+      .coalesce(1)
+      .orderBy(desc("frequency"))
+      .withColumn("percentage", col("frequency") * 100 / tripFreqDS2.agg(sum("frequency")).head.getAs[Long](0))
+      .write
+      .mode(SaveMode.Overwrite) // workaround for abnormal path-already-exists error
+      .option("header", true)
+      .csv(f"$path/$borough/cross_location_from_trip_count_dist")
+    tripFreqDS2.groupBy("do_location_id")
+      .agg(sum("frequency") as "frequency")
+      .coalesce(1)
+      .orderBy(desc("frequency"))
+      .withColumn("percentage", col("frequency") * 100 / tripFreqDS2.agg(sum("frequency")).head.getAs[Long](0))
+      .write
+      .mode(SaveMode.Overwrite) // workaround for abnormal path-already-exists error
+      .option("header", true)
+      .csv(f"$path/$borough/cross_location_to_trip_count_dist")
+    // The top 8 to and from locations 100% overlap with each other
   }
 
   // step-3
@@ -78,6 +115,7 @@ object Main {
     val options = parseMainOpts(Map(), args.toList)
     val nsDisInputPath = options(keyNeighborsDistanceInput).asInstanceOf[String]
     val tlcInputPath = options(keyTLCInput).asInstanceOf[String]
+    val profileOutputPath = options(keyProfileOutput).asInstanceOf[String]
     val pathFreqOutputPath = options(keyPathFreqOutput).asInstanceOf[String]
 
     // step-1: build up the neighbor zone graph
@@ -88,12 +126,14 @@ object Main {
 
     // step-2: compute taxi trip frequency
     val rawTrips = loadCleanData(spark, tlcInputPath)
-    val tripFreqDS = getTaxiTripFreqDS(spark, rawTrips, conLocList, isoLocList)
+    val tripFreqDS = getTaxiTripFreqDS(spark, rawTrips, conLocList, isoLocList).cache()
+    profileTaxiTrips(spark, tripFreqDS, profileOutputPath)
 
     // step-3: transform each taxi trip in the frequency dataset into corresponding shortest path
     val pathFreqDS = getTripPathFreqDS(spark, tripFreqDS, graphBroadcast)
     savePathFreqOutput(pathFreqDS, pathFreqOutputPath)
     assert(pathFreqDS.count() == loadRawDataCSV(spark, pathFreqOutputPath, delimiter = "\t").count())
+    tripFreqDS.unpersist()
 
     // TODO: step-4: compute coverage count for each trip path
     step4()
