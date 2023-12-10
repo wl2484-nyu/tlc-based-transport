@@ -59,6 +59,7 @@ object Main {
       .option("header", true)
       .option("delimiter", "\t")
       .csv(f"$path")
+    //.csv(f"$path/$borough") // TODO
   }
 
   // step-4
