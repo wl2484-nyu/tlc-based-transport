@@ -202,8 +202,8 @@ object Main {
     val lookupDF = loadRawDataCSV(spark, lookupPath, delimiter = ",")
     val lookupMap: Map[Int, String] = lookupDF.withColumn("Zone1", split(col("Zone"), "/")(0)).select("LocationID", "Zone1").as[(Int, String)].rdd.collect().toMap
     val mapLocationIdsUDF = udf((input: String) => mapLocationIds(input, lookupMap))
-    val k = 10
-    val m = 3
+    val k = 10000
+    val m = 2
     val topKHumanReadableRouteDF = getTopKHumanReadbleRouteWithCoverage(spark, k, m, pathCoverageCountDF, mapLocationIdsUDF)
     val topKHumanReadableRouteDS = topKHumanReadableRouteDF.as[HumanReadableTripPathCoverageCount]
     saveHumanReadablePathCoverageOutput(spark, topKHumanReadableRouteDS, pathHRCoverageOutputPath)
