@@ -7,8 +7,6 @@ import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.apache.spark.sql.functions._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, Dataset, SaveMode, SparkSession}
-import union_find.UnionFind
-
 import scala.collection.{Map, mutable}
 
 object Main {
@@ -19,6 +17,8 @@ object Main {
   case class TripPathFreq(frequency: BigInt, trip_path: String)
 
   case class TripPathCoverageCount(trip_path: String, coverage_count: BigInt)
+
+  case class HumanReadableTripPathCoverageCount(route: String, coverage_count: BigInt)
 
   // step-1
   def buildZoneNeighboringGraph(spark: SparkSession, neighborsDistanceInputPath: String): WeightedGraph[Long] = {
@@ -79,6 +79,18 @@ object Main {
       .csv(f"$path")
   }
 
+  def saveHumanReadablePathCoverageOutput(hrTripPathCoverageDS: Dataset[HumanReadableTripPathCoverageCount], path: String): Unit = {
+    val toSaveDS = hrTripPathCoverageDS.select("coverage_count", "route").as[HumanReadableTripPathCoverageCount]
+    toSaveDS.coalesce(1)
+      .orderBy(desc("coverage_count"))
+      .write
+      .mode(SaveMode.Overwrite) // workaround for abnormal path-already-exists error
+      .option("header", true)
+      .option("delimiter", "\t")
+      .csv(f"$path")
+  }
+
+
   // step-4 util
   def addIntToValueArray(key: String, valueToAdd: Int, myMap: mutable.Map[String, Array[Int]]): Unit = {
     val currentValueArray = myMap.getOrElse(key, Array.empty[Int])
@@ -87,7 +99,7 @@ object Main {
   }
 
   // step-4
-  def computeTripCoverageCount(spark: SparkSession, freqPathDF: DataFrame, ufString: UnionFind[String]):  Dataset[TripPathCoverageCount] = {
+  def computeTripCoverageCount(spark: SparkSession, freqPathDF: DataFrame): Dataset[TripPathCoverageCount] = {
     import spark.implicits._
     // Compute pairRDD key->path, value->frequency of trips for that path
     val pathFreqRDD = freqPathDF.rdd.map(row => (row.getString(1), row.getInt(0)))
@@ -136,6 +148,7 @@ object Main {
 
   // step-5
   def getTopKHumanReadbleRouteWithCoverage(spark: SparkSession, k: Int, m: Int, pathCoverageCountDF: DataFrame, mapLocationIdsUDF: UserDefinedFunction) = {
+    import spark.implicits._
     // get top-K routes with atleast m stops
     var topKDF = topKTripsWithAtleastMStops(10, 3, pathCoverageCountDF).toDF()
     topKDF.withColumn("route", mapLocationIdsUDF(col("trip_path")))
@@ -153,8 +166,7 @@ object Main {
     val tlcInputPath = options(keyTLCInput).asInstanceOf[String]
     val pathFreqOutputPath = options(keyPathFreqOutput).asInstanceOf[String]
     val pathCoverageOutputPath = options(keyPathCoverageOutput).asInstanceOf[String]
-
-    val ufString = new UnionFind[String]
+    val pathHRCoverageOutputPath = options(keyPathHRCoverageOutput).asInstanceOf[String]
 
     // step-1: build up the neighbor zone graph
     val conLocList = getBoroughConnectedLocationList(borough)
@@ -173,7 +185,7 @@ object Main {
 
     // step-4: compute coverage count for each trip path
     val freqPathDF = loadRawDataCSV(spark, pathFreqOutputPath, delimiter = "\t")
-    val pathCoverageCountDS = computeTripCoverageCount(spark, freqPathDF, ufString)
+    val pathCoverageCountDS = computeTripCoverageCount(spark, freqPathDF)
     savePathCoverageOutput(pathCoverageCountDS, pathCoverageOutputPath)
     assert(pathCoverageCountDS.count() == loadRawDataCSV(spark, pathCoverageOutputPath, delimiter = "\t").count())
 
@@ -181,11 +193,14 @@ object Main {
     val pathCoverageCountDF = loadRawDataCSV(spark, pathCoverageOutputPath, delimiter = "\t")
     val lookupPath = "/user/wl2484_nyu_edu/project/data/source/tlc/zone_lookup"
     val lookupDF = loadRawDataCSV(spark, lookupPath, delimiter = ",")
-    val lookupMap: Map[Int, String] =  lookupDF.withColumn("Zone1", split(col("Zone"), "/")(0)).select("LocationID", "Zone1").as[(Int, String)].rdd.collectAsMap()
+    val lookupMap: Map[Int, String] = lookupDF.withColumn("Zone1", split(col("Zone"), "/")(0)).select("LocationID", "Zone1").as[(Int, String)].rdd.collectAsMap()
     val mapLocationIdsUDF = udf((input: String) => mapLocationIds(input, lookupMap))
     val k = 10
     val m = 3
     val topKHumanReadableRouteDF = getTopKHumanReadbleRouteWithCoverage(spark, k, m, pathCoverageCountDF, mapLocationIdsUDF)
+    val topKHumanReadableRouteDS = topKHumanReadableRouteDF.as[HumanReadableTripPathCoverageCount]
+    saveHumanReadablePathCoverageOutput(topKHumanReadableRouteDS, pathHRCoverageOutputPath)
+
 
     // TODO: step-6: Compute the coverage of taxi trips by the top k recommended routes
     step6()
