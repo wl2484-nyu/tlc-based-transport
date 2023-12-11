@@ -202,7 +202,7 @@ object TaxiZoneNeighboring {
       38 -> List(),
       53 -> List(),
       56 -> List(),
-      56 -> List(),
+      57 -> List(),
       64 -> List(),
       73 -> List(),
       70 -> List(),

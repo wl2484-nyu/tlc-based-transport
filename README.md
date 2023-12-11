@@ -3,15 +3,12 @@
 
 Recommend public transport route(s) based on [TLC Trip Record Data](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page).
 
+
 ## Members
 1. Wan-Yu Lin (wl2484)
 2. Priyanka Narain (pn2182)
 3. Charvi Gupta (cg4177)
 
-## Due Dates
-1. [12/04] Data ingestion per individual (i.e. spark code for data profiling, cleaning, and ingestion + a report)
-2. [12/11] Presentation in class
-3. [12/15] Spark code and corresponding scripts for methodology implementation + a paper-ish report
 
 ## Data Sources
 |     | Main Dataset                                                                                                                                          | Subordinate Dataset                                                                                                              | Owner           | Format    | Size         | Time Span         | HDFS Location                                               | Notes                                                                                                    |
@@ -104,6 +101,7 @@ for br in manhattan; do
 done;
 ```
 
+
 ## Data Cleaning
 
 | Dataset            | File                 | Raw Columns to Keep             | Renamed & New Columns                  | Owner           |
@@ -118,44 +116,6 @@ done;
 |                    | stop_times.txt       | trip_id, stop_id, stop_sequence | trip_id, stop_id, stop_sequence        | Wan-Yu Lin      |
 |                    | stops.txt            | stop_id, stop_lat, stop_lon     | stop_id, stop_lat, stop_lon            | Wan-Yu Lin      |
 
-## Data Profiling
-
-### dataset-1
-> Owner: Wan-Yu Lin
-
-1. number of locations per borough
-2. total coordinate count per location
-3. total sub-region count per locaiton
-4. max sub-region coordinate count per location
-5. all sub-region coordinate counts in a location
-6. avg latitude and longitude per location
-
-### dataset-2
-
-#### dataset-2.1
-> Owner: Charvi Gupta
-
-TBA
-
-#### dataset-2.2
-> Owner: Charvi Gupta
-
-TBA
-
-#### dataset-2.3
-> Owner: Priyanka Narain
-
-TBA
-
-#### dataset-2.4
-> Owner: Priyanka Narain
-
-TBA
-
-### dataset-3
-> Owner: Wan-Yu Lin
-
-1. number of locations per borough
 
 ## Methodology
 When there exist frequent taxi trips going from location-X to location-Y, both location-X and location-Y could be 
@@ -234,7 +194,7 @@ Staten Island\t
 ```
 
 ### Step-2: Compute taxi trip frequency
-> Owner: Priyanka Narain
+> Owner: Wan-Yu Lin, Priyanka Narain
 
 #### Expected Output 1: Spark scripts to convert dataset-2 into a frequency RDD of (pick-up, drop-off) pair
 Transform taxi trips in **dataset-2** into (pick-up, drop-off) pairs, load the isolated_locations and apply the 
@@ -399,6 +359,26 @@ finally divide the number of taxi trips covered by the total number of taxi trip
 
 
 ## Insights
+
+### Composition of Taxi Trips
+> Owner: Wan-Yu Lin
+
+<img src="figures/taxi-trip-composition.png" width="1311" height="460">
+
+#### Findings
+
+1. Though the ranking order slightly varies, the top 8 starting locations 100% overlap with the top 8 ending locations
+2. ...
+
+
+### Distribution of Taxi Trips In Shortest Path
+> Owner: Priyanka Narain
+
+TBA
+
+
+### Recommendation Results By Taxi Trips Coverage
+> Owner: Charvi Gupta
 
 TBA
 

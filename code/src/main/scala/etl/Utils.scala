@@ -45,6 +45,8 @@ object Utils {
         parseMainOpts(map ++ Map(keyTLCInput -> value), tail)
       case `optPathFreqOutput` :: value :: tail =>
         parseMainOpts(map ++ Map(keyPathFreqOutput -> value), tail)
+      case `optProfileOutput` :: value :: tail =>
+        parseMainOpts(map ++ Map(keyProfileOutput -> value), tail)
       case unknown :: _ =>
         println("Unknown option " + unknown)
         map
