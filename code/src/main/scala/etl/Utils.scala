@@ -18,6 +18,10 @@ object Utils {
   val optTLCInput = "--" + keyTLCInput
   val keyPathFreqOutput = "path-freq-output"
   val optPathFreqOutput = "--" + keyPathFreqOutput
+  val keyPathCoverageOutput = "path-coverage-output"
+  val optPathCoverageOutput = "--" + keyPathCoverageOutput
+  val keyPathHRCoverageOutput = "path-HRcoverage-output"
+  val optPathHRCoverageOutput = "--" + keyPathHRCoverageOutput
 
   def parseOpts(map: Map[String, Any], list: List[String]): Map[String, Any] = {
     list match {
@@ -47,6 +51,10 @@ object Utils {
         parseMainOpts(map ++ Map(keyPathFreqOutput -> value), tail)
       case `optProfileOutput` :: value :: tail =>
         parseMainOpts(map ++ Map(keyProfileOutput -> value), tail)
+      case `optPathCoverageOutput` :: value :: tail =>
+        parseMainOpts(map ++ Map(keyPathCoverageOutput -> value), tail)
+      case `optPathHRCoverageOutput` :: value :: tail =>
+        parseMainOpts(map ++ Map(keyPathHRCoverageOutput -> value), tail)
       case unknown :: _ =>
         println("Unknown option " + unknown)
         map
@@ -69,5 +77,22 @@ object Utils {
 
   def loadintermediateData(spark: SparkSession, path: String, year: Int, cab: String): DataFrame={
     spark.read.parquet(s"$path/${cab}/${year}/*.parquet")
+  }
+
+  def isSubsequence(s1: String, s2: String): Boolean = {
+    val arr1 = s1.split(",").map(_.toInt)
+    val arr2 = s2.split(",").map(_.toInt)
+    var i = 0 // Index for arr1
+    var j = 0 // Index for arr2
+
+    while (i < arr1.length && j < arr2.length) {
+      if (arr1(i) == arr2(j)) {
+        i += 1
+      }
+      j += 1
+    }
+
+    // If all elements of arr1 are found in arr2 in the same order
+    i == arr1.length
   }
 }
