@@ -22,6 +22,8 @@ object Utils {
   val optPathCoverageOutput = "--" + keyPathCoverageOutput
   val keyPathHRCoverageOutput = "path-HRcoverage-output"
   val optPathHRCoverageOutput = "--" + keyPathHRCoverageOutput
+  val keyPathHRCoveragePercentOutput = "path-HRcoveragepercent-output"
+  val optPathHRCoveragePercentOutput = "--" + keyPathHRCoveragePercentOutput
 
   def parseOpts(map: Map[String, Any], list: List[String]): Map[String, Any] = {
     list match {
@@ -53,8 +55,8 @@ object Utils {
         parseMainOpts(map ++ Map(keyProfileOutput -> value), tail)
       case `optPathCoverageOutput` :: value :: tail =>
         parseMainOpts(map ++ Map(keyPathCoverageOutput -> value), tail)
-      case `optPathHRCoverageOutput` :: value :: tail =>
-        parseMainOpts(map ++ Map(keyPathHRCoverageOutput -> value), tail)
+      case `optPathHRCoveragePercentOutput` :: value :: tail =>
+        parseMainOpts(map ++ Map(keyPathHRCoveragePercentOutput -> value), tail)
       case unknown :: _ =>
         println("Unknown option " + unknown)
         map

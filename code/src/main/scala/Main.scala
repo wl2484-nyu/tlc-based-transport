@@ -3,11 +3,11 @@ import etl.TaxiZoneNeighboring.{getBoroughConnectedLocationList, getBoroughIsola
 import etl.Utils._
 import graph.{Dijkstra, WeightedEdge, WeightedGraph}
 import org.apache.spark.broadcast.Broadcast
-import org.apache.spark.sql.functions.{col, count, desc, sum}
-import org.apache.spark.sql.{DataFrame, Dataset, SaveMode, SparkSession}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.expressions.UserDefinedFunction
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.{DataFrame, Dataset, SaveMode, SparkSession}
+
 import scala.collection.mutable
 
 
@@ -21,6 +21,8 @@ object Main {
   case class TripPathCoverageCount(trip_path: String, coverage_count: BigInt)
 
   case class HumanReadableTripPathCoverageCount(route: String, coverage_count: BigInt)
+
+  case class TopKHumanReadableRouteCoveragePercentage(route: String, coverage_percentage: Double)
 
   // step-1
   def buildZoneNeighboringGraph(spark: SparkSession, neighborsDistanceInputPath: String): WeightedGraph[Long] = {
@@ -134,6 +136,21 @@ object Main {
       .csv(f"$path")
   }
 
+  def saveTopKHumanReadableRouteCoveragePercentageOutput(sparkSession: SparkSession,
+                                                         topKHumanReadableRouteCoveragePercentageDS: Dataset[TopKHumanReadableRouteCoveragePercentage],
+                                                         path: String): Unit = {
+    import spark.implicits._
+
+    val toSaveDS = topKHumanReadableRouteCoveragePercentageDS.select("coverage_percentage", "route").as[TopKHumanReadableRouteCoveragePercentage]
+    toSaveDS.coalesce(1)
+      .orderBy(desc("coverage_percentage"))
+      .write
+      .mode(SaveMode.Overwrite) // workaround for abnormal path-already-exists error
+      .option("header", true)
+      .option("delimiter", "\t")
+      .csv(f"$path")
+  }
+
 
   // step-4 util
   def addIntToValueArray(key: String, valueToAdd: Int, myMap: mutable.Map[String, Array[Int]]): Unit = {
@@ -142,8 +159,15 @@ object Main {
     myMap(key) = updatedValueArray
   }
 
+  // step-4 util
+  def addStringToValueArray(key: String, valueToAdd: String, myMap: mutable.Map[String, Array[String]]): Unit = {
+    val currentValueArray = myMap.getOrElse(key, Array.empty[String])
+    val updatedValueArray = currentValueArray :+ valueToAdd
+    myMap(key) = updatedValueArray
+  }
+
   // step-4
-  def computeTripCoverageCount(spark: SparkSession, freqPathDF: DataFrame): Dataset[TripPathCoverageCount] = {
+  def computeTripCoverageCount(spark: SparkSession, freqPathDF: DataFrame): (Dataset[TripPathCoverageCount], mutable.Map[String,Array[String]]) = {
     import spark.implicits._
     // Compute pairRDD key->path, value->frequency of trips for that path
     val pathFreqRDD = freqPathDF.rdd.map(row => (row.getString(1), row.getInt(0)))
@@ -151,7 +175,9 @@ object Main {
     val trips = pathFreqRDD.keys.collect()
     val n = trips.length
     val mutablePathCoverageCountMap: mutable.Map[String, Array[Int]] = mutable.Map.empty[String, Array[Int]]
+    val mutablePathSubPathMap: mutable.Map[String, Array[String]] = mutable.Map.empty[String, Array[String]]
     pathFreqMap.foreach { case (key, value) => mutablePathCoverageCountMap(key) = Array(value) }
+    pathFreqMap.foreach { case (key, _) => mutablePathSubPathMap(key) = Array(key) }
     // Update the parent of trip1 as trip2 if trip1 is a subsequence of trip2
     // here parent represents the bigger path which covers a given smaller path
     for (i <- 0 until n) {
@@ -163,6 +189,7 @@ object Main {
             val key = trip1
             val valuetoAdd = pathFreqMap.getOrElse(key, 0)
             addIntToValueArray(trip2, valuetoAdd, mutablePathCoverageCountMap)
+            addStringToValueArray(trip2, trip1, mutablePathSubPathMap)
           }
           // println(s"Trip1: $trip1 is a subsequence of Trip2: $trip2")
         }
@@ -173,9 +200,11 @@ object Main {
         (key, BigInt(values.sum))
       }
     )
-    pathCoverageCountRDD.map({
+    val pathCoverageCountDS = pathCoverageCountRDD.map({
       case (trip_path, coverage_count) => TripPathCoverageCount(trip_path, coverage_count)
     }).toDS()
+
+    (pathCoverageCountDS, mutablePathSubPathMap)
   }
 
   // step-5 util
@@ -199,9 +228,6 @@ object Main {
     topKDF.withColumn("route", mapLocationIdsUDF(col("trip_path")))
   }
 
-  // step-6
-  def step6(): Unit = {}
-
   def main(args: Array[String]): Unit = {
     val spark = SparkSession.builder().appName("RecommendPublicTransportRoutes").getOrCreate()
     val sc = spark.sparkContext
@@ -214,6 +240,7 @@ object Main {
     val pathFreqOutputPath = options(keyPathFreqOutput).asInstanceOf[String]
     val pathCoverageOutputPath = options(keyPathCoverageOutput).asInstanceOf[String]
     val pathHRCoverageOutputPath = options(keyPathHRCoverageOutput).asInstanceOf[String]
+    val pathHRCoveragePercentOutputPath = options(keyPathHRCoveragePercentOutput).asInstanceOf[String]
 
     // step-1: build up the neighbor zone graph
     val conLocList = getBoroughConnectedLocationList(borough)
@@ -234,7 +261,7 @@ object Main {
 
     // step-4: compute coverage count for each trip path
     val freqPathDF = loadRawDataCSV(spark, pathFreqOutputPath, delimiter = "\t")
-    val pathCoverageCountDS = computeTripCoverageCount(spark, freqPathDF)
+    val (pathCoverageCountDS, mutablePathSubPathMap) = computeTripCoverageCount(spark, freqPathDF)
     savePathCoverageOutput(spark, pathCoverageCountDS, pathCoverageOutputPath)
     assert(pathCoverageCountDS.count() == loadRawDataCSV(spark, pathCoverageOutputPath, delimiter = "\t").count())
 
@@ -251,7 +278,9 @@ object Main {
     saveHumanReadablePathCoverageOutput(spark, topKHumanReadableRouteDS, pathHRCoverageOutputPath)
 
     // TODO: step-6: Compute the coverage of taxi trips by the top k recommended routes
-    step6()
-
+    val total_trips = freqPathDF.rdd.map(row => (row.getString(1), row.getInt(0))).map(row => row._2).reduce(_+_)
+    val topKHumanReadableRouteCoveragePercentageDF = topKHumanReadableRouteDF.withColumn("coveragePercentage", round((col("coverage_count")/ total_trips)*100.0, 2))
+    val topKHumanReadableRouteCoveragePercentageDS = topKHumanReadableRouteCoveragePercentageDF.as[TopKHumanReadableRouteCoveragePercentage]
+    saveTopKHumanReadableRouteCoveragePercentageOutput(spark, topKHumanReadableRouteCoveragePercentageDS, pathHRCoveragePercentOutputPath)
   }
 }

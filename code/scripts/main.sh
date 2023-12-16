@@ -14,4 +14,5 @@ spark-submit --deploy-mode cluster \
   --tlc-input /user/wl2484_nyu_edu/project/data/clean/tlc/taxi_trips \
   --path-freq-output /user/wl2484_nyu_edu/project/data/intermediate/taxi_trip_path_frequency \
   --path-coverage-output /user/wl2484_nyu_edu/project/data/intermediate/trip_paths_coverage_count \
-  --path-HRcoverage-output /user/wl2484_nyu_edu/project/data/result/rec_routes_coverage_count
+  --path-HRcoverage-output /user/wl2484_nyu_edu/project/data/result/rec_routes_coverage_count \
+  --path-HRcoveragepercent-output /user/wl2484_nyu_edu/project/data/result/rec_routes_coverage_percent
