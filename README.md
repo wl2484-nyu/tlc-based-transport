@@ -116,6 +116,8 @@ done;
 |                    | stop_times.txt       | trip_id, stop_id, stop_sequence | trip_id, stop_id, stop_sequence        | Wan-Yu Lin      |
 |                    | stops.txt            | stop_id, stop_lat, stop_lon     | stop_id, stop_lat, stop_lon            | Wan-Yu Lin      |
 
+<img src="figures/insights.png" width="911" height="430">
+
 
 ## Methodology
 When there exist frequent taxi trips going from location-X to location-Y, both location-X and location-Y could be 
@@ -341,36 +343,6 @@ path frequency TSV file, take its frequency into count if it is a substring of o
 routes, and finally divide the number of taxi trips covered by the total number of taxi trips.
 
 #### Expected Output 1: Spark scripts to compute and output the coverage of taxi trips by the top k recommended routes
-
-
-## Insights
-
-### Composition of Taxi Trips
-> Owner: Wan-Yu Lin
-
-<img src="figures/taxi-trip-composition.png" width="1311" height="460">
-
-#### Findings
-
-1. Though the ranking order slightly varies, the top 8 starting locations 100% overlap with the top 8 ending locations
-2. ...
-
-
-### Distribution of Taxi Trips In Shortest Path
-> Owner: Priyanka Narain
-
-TBA
-
-
-### Recommendation Results By Taxi Trips Coverage
-> Owner: Charvi Gupta
-
-TBA
-
-
-## Discussions
-
-TBA
 
 
 ## References
