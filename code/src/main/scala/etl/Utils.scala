@@ -55,6 +55,8 @@ object Utils {
         parseMainOpts(map ++ Map(keyProfileOutput -> value), tail)
       case `optPathCoverageOutput` :: value :: tail =>
         parseMainOpts(map ++ Map(keyPathCoverageOutput -> value), tail)
+      case `optPathHRCoverageOutput` :: value :: tail =>
+        parseMainOpts(map ++ Map(keyPathHRCoverageOutput -> value), tail)
       case `optPathHRCoveragePercentOutput` :: value :: tail =>
         parseMainOpts(map ++ Map(keyPathHRCoveragePercentOutput -> value), tail)
       case unknown :: _ =>
