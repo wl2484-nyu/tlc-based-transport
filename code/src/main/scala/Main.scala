@@ -279,7 +279,7 @@ object Main {
 
     // step-6: Compute the coverage of taxi trips by the top k recommended routes
     val total_trips = freqPathDF.rdd.map(row => (row.getString(1), row.getInt(0))).map(row => row._2).reduce(_+_)
-    val topKHumanReadableRouteCoveragePercentageDF = topKHumanReadableRouteDF.withColumn("coveragePercentage", round((col("coverage_count")/ total_trips)*100.0, 2))
+    val topKHumanReadableRouteCoveragePercentageDF = topKHumanReadableRouteDF.withColumn("coverage_percentage", round((col("coverage_count")/ total_trips)*100.0, 2))
     val topKHumanReadableRouteCoveragePercentageDS = topKHumanReadableRouteCoveragePercentageDF.as[TopKHumanReadableRouteCoveragePercentage]
     saveTopKHumanReadableRouteCoveragePercentageOutput(spark, topKHumanReadableRouteCoveragePercentageDS, pathHRCoveragePercentOutputPath)
   }
