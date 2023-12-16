@@ -136,7 +136,7 @@ object Main {
       .csv(f"$path")
   }
 
-  def saveTopKHumanReadableRouteCoveragePercentageOutput(sparkSession: SparkSession,
+  def saveTopKHumanReadableRouteCoveragePercentageOutput(spark: SparkSession,
                                                          topKHumanReadableRouteCoveragePercentageDS: Dataset[TopKHumanReadableRouteCoveragePercentage],
                                                          path: String): Unit = {
     import spark.implicits._
